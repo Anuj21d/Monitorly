@@ -1,0 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=Epilogue:wght@700;800;900&family=JetBrains+Mono:wght@500;800;900&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  /* ========================================
+     COLORS — BACKGROUND / SURFACES
+     ======================================== */
+
+  --color-canvas: #090909;
+  --color-card-dark: #111111;
+  --color-card-elevated: #151515;
+  --color-input-dark: #0d0d0d;
+
+  --color-editorial: #f5f3ee;
+  --color-editorial-tint: #edeae2;
+  --color-white: #ffffff;
+
+  /* ========================================
+     COLORS — BRAND
+     ======================================== */
+
+  --color-coral: #ff5a5f;
+  --color-coral-hover: #ff4349;
+  --color-coral-subtle: rgb(255 90 95 / 12%);
+  --color-coral-glow: rgb(255 90 95 / 20%);
+
+  /* ========================================
+     COLORS — STATUS
+     ======================================== */
+
+  --color-healthy: #10b981;
+  --color-degraded: #f59e0b;
+  --color-down: #ff5a5f;
+  --color-neutral: #888888;
+
+  /* ========================================
+     COLORS — TEXT
+     ======================================== */
+
+  /* Text used on editorial/light surfaces */
+  --color-text-dark-primary: #0a0a0a;
+  --color-text-dark-secondary: #555555;
+  --color-text-dark-muted: #777777;
+
+  /* Text used on dark surfaces */
+  --color-text-light-primary: #f5f3ee;
+  --color-text-light-secondary: #999999;
+  --color-text-light-muted: #666666;
+
+  /* ========================================
+     COLORS — BORDERS
+     ======================================== */
+
+  --color-border-dark-subtle: rgb(255 255 255 / 8%);
+  --color-border-dark-medium: rgb(255 255 255 / 12%);
+  --color-border-dark-strong: rgb(255 255 255 / 20%);
+
+  --color-border-light-subtle: rgb(0 0 0 / 10%);
+  --color-border-light-medium: rgb(0 0 0 / 14%);
+
+  /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+
+  --font-display: "Epilogue", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* ========================================
+     BORDER RADIUS
+     ======================================== */
+
+  --radius-card-lg: 36px;
+  --radius-card: 24px;
+  --radius-card-sm: 16px;
+  --radius-control: 12px;
+  --radius-pill: 9999px;
+}
