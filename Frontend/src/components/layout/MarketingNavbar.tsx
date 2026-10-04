@@ -24,7 +24,7 @@ const navLink: NavItem[] = [
 
 const MarketingNavbar = () => {
   return (
-    <nav className="fixed top-0 flex h-20 w-full items-center justify-between bg-canvas font-body border-b border-border-dark-medium">
+    <nav className="fixed top-0 flex h-20 w-full items-center justify-between bg-canvas font-body border-b border-border-dark-medium z-10">
       <PageContainer className="flex justify-between items-center w-full">
         <div className="flex justify-between items-center gap-30">
           <div className="font-extrabold tracking-tighter text-xl leading-none text-[#F5F3EE] flex flex-col">
