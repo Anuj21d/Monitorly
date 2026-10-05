@@ -26,8 +26,8 @@ const footerLinks: Link[] = [
 
 const Footer = () => {
   return (
-    <footer className="bg-canvas">
-      <PageContainer className="py-16 px-6">
+    <footer className="bg-canvas ">
+      <PageContainer className="py-16 px-6 border-t border-border-dark-subtle">
         <div className="flex justify-between">
           <div>
             <div className="font-extrabold tracking-tighter text-2xl leading-none text-[#F5F3EE] flex flex-col mb-4">

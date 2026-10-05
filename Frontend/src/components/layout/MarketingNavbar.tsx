@@ -27,14 +27,17 @@ const MarketingNavbar = () => {
     <nav className="fixed top-0 flex h-20 w-full items-center justify-between bg-canvas font-body border-b border-border-dark-medium z-10">
       <PageContainer className="flex justify-between items-center w-full">
         <div className="flex justify-between items-center gap-30">
-          <div className="font-extrabold tracking-tighter text-xl leading-none text-[#F5F3EE] flex flex-col">
+          <motion.div
+            whileHover={{ rotate: 1.5 }}
+            className="font-extrabold tracking-tighter text-xl leading-none text-[#F5F3EE] flex flex-col"
+          >
             <span className="text-text-light-primary font-display font-bold tracking-[-0.05em] ">
               Monitor
             </span>
             <span className="text-coral font-display font-bold hover:text-text-light-primary tracking-[-0.05em]">
               Plus
             </span>
-          </div>
+          </motion.div>
           <div className="flex gap-8 items-center justify-center">
             <div className="flex items-center gap-8">
               {navLink.map((nav) => (
