@@ -3,6 +3,7 @@ import LandingPage from "../features/Landing/pages/LandingPage";
 import AuthPage from "../features/Auth/pages/AuthPage";
 import LoginPage from "../features/Auth/pages/LoginPage";
 import RegisterPage from "../features/Auth/pages/RegisterPage";
+import Dashboard from "../features/Dashboard/pages/Dashboard";
 
 export const router = createBrowserRouter([
   {
@@ -22,5 +23,9 @@ export const router = createBrowserRouter([
         element: <RegisterPage />,
       },
     ],
+  },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
   },
 ]);
