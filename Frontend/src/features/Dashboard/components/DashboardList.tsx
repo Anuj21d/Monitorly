@@ -55,7 +55,7 @@ const DashboardList = () => {
       </div>
 
       <div className="bg-[#111111] rounded-[24px] border border-white/[0.08] overflow-visible shadow-lg">
-     
+        {/* Desktop View */}
         <div className="hidden md:block overflow-visible">
           <table className="w-full text-left text-xs">
             <thead>
@@ -119,7 +119,7 @@ const DashboardList = () => {
           </table>
         </div>
 
-       
+        {/* Mobile View */}
         <div className="md:hidden divide-y divide-white/[0.06]">
           {mockMonitors.map((monitor, index) => {
             // If it's one of the last 3 items, make the dropdown open upwards
