@@ -119,7 +119,7 @@ const DashboardList = () => {
           </table>
         </div>
 
-        {/* Mobile View */}
+       
         <div className="md:hidden divide-y divide-white/[0.06]">
           {mockMonitors.map((monitor, index) => {
             // If it's one of the last 3 items, make the dropdown open upwards
