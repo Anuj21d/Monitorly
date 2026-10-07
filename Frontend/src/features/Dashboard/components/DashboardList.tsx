@@ -1,95 +1,4 @@
-const monitorsData = [
-  {
-    id: 1,
-    name: "Auth API",
-    url: "https://auth.monitorly.io/health",
-    status: "Healthy",
-    response: "98 ms",
-    uptime: "100.00%",
-    lastCheck: "41 sec ago",
-  },
-  {
-    id: 2,
-    name: "Customer Portal API",
-    url: "https://app.monitorly.io/api/status",
-    status: "Healthy",
-    response: "110 ms",
-    uptime: "99.95%",
-    lastCheck: "1m ago",
-  },
-  {
-    id: 3,
-    name: "Ingestion Pipeline",
-    url: "https://ingest.monitorly.io/live",
-    status: "Healthy",
-    response: "92 ms",
-    uptime: "99.97%",
-    lastCheck: "4m ago",
-  },
-  {
-    id: 4,
-    name: "Notification Gateway",
-    url: "https://notify.monitorly.io/health",
-    status: "Healthy",
-    response: "128 ms",
-    uptime: "99.91%",
-    lastCheck: "3m ago",
-  },
-  {
-    id: 5,
-    name: "Payment API",
-    url: "https://api.monitorly.io/v1/payments/health",
-    status: "Healthy",
-    response: "142 ms",
-    uptime: "99.99%",
-    lastCheck: "38 sec ago",
-  },
-  {
-    id: 6,
-    name: "Realtime WebSockets",
-    url: "https://ws.monitorly.io/healthz",
-    status: "Healthy",
-    response: "45 ms",
-    uptime: "100.00%",
-    lastCheck: "Just now",
-  },
-  {
-    id: 7,
-    name: "Recommendation Engine",
-    url: "https://recs.monitorly.io/health",
-    status: "Healthy",
-    response: "195 ms",
-    uptime: "99.89%",
-    lastCheck: "2m ago",
-  },
-  {
-    id: 8,
-    name: "Search API",
-    url: "https://search.monitorly.io/cluster/status",
-    status: "Healthy",
-    response: "183 ms",
-    uptime: "99.97%",
-    lastCheck: "35 sec ago",
-  },
-  {
-    id: 9,
-    name: "Storage Bucket Proxy",
-    url: "https://cdn.monitorly.io/status",
-    status: "Healthy",
-    response: "64 ms",
-    uptime: "100.00%",
-    lastCheck: "Just now",
-  },
-  {
-    id: 10,
-    name: "User Billing Service",
-    url: "https://billing.monitorly.io/v1/ping",
-    status: "Healthy",
-    response: "115 ms",
-    uptime: "99.99%",
-    lastCheck: "2m ago",
-  },
-];
+import { mockMonitors } from "../data/mockMonitors";
 
 const ActionIcon = () => (
   <svg
@@ -160,9 +69,9 @@ const DashboardList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.05]">
-              {monitorsData.map((monitor, index) => {
+              {mockMonitors.map((monitor, index) => {
                 // If it's one of the last 3 items, make the dropdown open upwards
-                const isBottom = index >= monitorsData.length - 3;
+                const isBottom = index >= mockMonitors.length - 3;
 
                 return (
                   <tr
@@ -184,13 +93,13 @@ const DashboardList = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right font-mono font-semibold">
-                      <span className="text-[#F5F3EE]">{monitor.response}</span>
+                      <span className="text-[#F5F3EE]">{monitor.responseTime}</span>
                     </td>
                     <td className="py-4 px-4 text-right font-mono text-[#888888]">
                       {monitor.uptime}
                     </td>
                     <td className="py-4 px-4 text-right font-mono text-[#666666]">
-                      {monitor.lastCheck}
+                      {monitor.lastChecked}
                     </td>
                     <td className="py-4 pr-6 text-right relative">
                       <div className="relative inline-block group/action">
@@ -212,9 +121,9 @@ const DashboardList = () => {
 
         {/* Mobile View */}
         <div className="md:hidden divide-y divide-white/[0.06]">
-          {monitorsData.map((monitor, index) => {
+          {mockMonitors.map((monitor, index) => {
             // If it's one of the last 3 items, make the dropdown open upwards
-            const isBottom = index >= monitorsData.length - 3;
+            const isBottom = index >= mockMonitors.length - 3;
 
             return (
               <div
@@ -242,7 +151,7 @@ const DashboardList = () => {
                   <div>
                     <span className="text-[#666666]">Response: </span>
                     <span className="font-semibold text-[#F5F3EE]">
-                      {monitor.response}
+                      {monitor.responseTime}
                     </span>
                   </div>
                   <div>
@@ -251,7 +160,7 @@ const DashboardList = () => {
                   </div>
                 </div>
                 <div className="text-[11px] font-mono text-[#666666]">
-                  Last checked {monitor.lastCheck}
+                  Last checked {monitor.lastChecked}
                 </div>
               </div>
             );
