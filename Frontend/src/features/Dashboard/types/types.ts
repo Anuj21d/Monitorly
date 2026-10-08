@@ -10,4 +10,5 @@ export type Monitor = {
   uptime: number;
   frequency: number;
   lastChecked: string;
+  timeout?: number;
 };

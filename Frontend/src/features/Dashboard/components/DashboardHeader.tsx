@@ -1,8 +1,39 @@
 import { CirclePlus, X } from "lucide-react";
 import { useState } from "react";
+import type { Monitor } from "../types/types";
 
 const DashboardHeader = () => {
   const [addMonitor, setAddMonitor] = useState(false);
+
+  const [method, setMethod] = useState<Monitor["method"]>("GET");
+  const [frequency, setFrequency] = useState(30);
+  const [serviceName, setServiceName] = useState("");
+  const [endpointUrl, setEndpointUrl] = useState("");
+
+  const handleCreateMonitor = (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const newMonitor: Monitor = {
+      id: crypto.randomUUID(),
+      name: serviceName,
+      url: endpointUrl,
+      method: method,
+      status: "healthy",
+      responseTime: null,
+      uptime: 100,
+      frequency: frequency,
+      lastChecked: "Never",
+    };
+
+    console.log(newMonitor);
+
+    setServiceName("");
+    setEndpointUrl("");
+    setMethod("GET");
+    setFrequency(30);
+    setAddMonitor(false);
+  };
+
   return (
     <section className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-2 border-b border-white/6 mb-10">
       <div>
@@ -41,14 +72,18 @@ const DashboardHeader = () => {
               </div>
               <button
                 onClick={() => {
-                  addMonitor ? setAddMonitor(false) : setAddMonitor(true);
+                  setAddMonitor(false);
                 }}
                 className="p-1.5 rounded-lg text-[#888888] hover:text-white hover:bg-white/[0.08] transition-colors"
               >
                 <X size={16} strokeWidth={1.5} />
               </button>
             </div>
-            <form action="" className="space-y-5 pt-6">
+            <form
+              action=""
+              className="space-y-5 pt-6"
+              onSubmit={handleCreateMonitor}
+            >
               <div>
                 <label
                   htmlFor=""
@@ -57,11 +92,34 @@ const DashboardHeader = () => {
                   Service Name
                 </label>
                 <input
+                  value={serviceName}
+                  onChange={(e) => {
+                    setServiceName(e.target.value);
+                  }}
                   type="text"
                   className="w-full bg-[#090909] border border-white/[0.12] focus:border-[#FF5A5F] rounded-xl px-4 py-3 text-sm text-[#F5F3EE] placeholder-[#555555] focus:outline-none transition-colors"
                   placeholder="e.g. Payment API"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-bold tracking-wider uppercase text-[#888888] mb-1.5 font-mono">
+                  HTTP Method
+                </label>
+
+                <select
+                  value={method}
+                  onChange={(e) =>
+                    setMethod(e.target.value as Monitor["method"])
+                  }
+                  className="w-full bg-[#090909] border border-white/[0.12] focus:border-[#FF5A5F] rounded-xl px-4 py-3 text-sm text-[#F5F3EE] focus:outline-none"
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="PATCH">PATCH</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
               </div>
               <div>
                 <label
@@ -71,16 +129,36 @@ const DashboardHeader = () => {
                   Endpoint Url
                 </label>
                 <input
+                  value={endpointUrl}
+                  onChange={(e) => {
+                    setEndpointUrl(e.target.value);
+                  }}
                   type="url"
                   required
                   className="w-full bg-[#090909] border border-white/[0.12] focus:border-[#FF5A5F] rounded-xl px-4 py-3 text-sm text-[#F5F3EE] placeholder-[#555555] font-mono focus:outline-none transition-colors"
                   placeholder="https://api.example.com/health"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold tracking-wider uppercase text-[#888888] mb-1.5 font-mono">
+                  Check Frequency
+                </label>
+
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(Number(e.target.value))}
+                  className="w-full bg-[#090909] border border-white/[0.12] focus:border-[#FF5A5F] rounded-xl px-4 py-3 text-sm text-[#F5F3EE] focus:outline-none"
+                >
+                  <option value={30}>Every 30 seconds</option>
+                  <option value={60}>Every 1 minute</option>
+                  <option value={300}>Every 5 minutes</option>
+                  <option value={600}>Every 10 minutes</option>
+                </select>
+              </div>
               <div className="pt-4 flex items-center justify-end gap-3">
                 <button
                   onClick={() => {
-                    addMonitor ? setAddMonitor(false) : setAddMonitor(true);
+                    setAddMonitor(false);
                   }}
                   type="button"
                   className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-[#888888] hover:text-white transition-colors"

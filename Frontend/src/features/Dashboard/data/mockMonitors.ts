@@ -24,3 +24,10 @@ export const mockMonitors: Monitor[] = [
     lastChecked: "41 sec ago",
   },
 ];
+
+// mockMonitors.push(
+//   {
+//     id:"3",
+//     url:
+//   }
+// )
