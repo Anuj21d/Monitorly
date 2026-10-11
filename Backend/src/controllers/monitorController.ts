@@ -55,3 +55,13 @@ async function pauseMonitorController() {}
  */
 
 async function resumeMonitorController() {}
+
+export {
+  createMonitorController,
+  getMonitorsController,
+  getMonitorController,
+  updateMonitorController,
+  deleteMonitorController,
+  pauseMonitorController,
+  resumeMonitorController,
+};
