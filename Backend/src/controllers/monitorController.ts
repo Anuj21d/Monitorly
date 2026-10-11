@@ -6,7 +6,7 @@ import type { Response, Request } from "express";
  * @access Private
  */
 
-async function createMonitorController(req: Request, res: Response) {}
+export async function createMonitorController(req: Request, res: Response) {}
 
 /**
  * @name getMonitorsController
@@ -14,7 +14,7 @@ async function createMonitorController(req: Request, res: Response) {}
  * @access Private
  */
 
-async function getMonitorsController() {}
+export async function getMonitorsController(req: Request, res: Response) {}
 
 /**
  * @name getMonitorController
@@ -22,7 +22,7 @@ async function getMonitorsController() {}
  * @access Private
  */
 
-async function getMonitorController() {}
+export async function getMonitorController(req: Request, res: Response) {}
 
 /**
  * @name updateMonitorController
@@ -30,7 +30,7 @@ async function getMonitorController() {}
  * @access Private
  */
 
-async function updateMonitorController() {}
+export async function updateMonitorController(req: Request, res: Response) {}
 
 /**
  * @name deleteMonitorController
@@ -38,7 +38,7 @@ async function updateMonitorController() {}
  * @access Private
  */
 
-async function deleteMonitorController() {}
+export async function deleteMonitorController(req: Request, res: Response) {}
 
 /**
  * @name pauseMonitorController
@@ -46,7 +46,7 @@ async function deleteMonitorController() {}
  * @access Private
  */
 
-async function pauseMonitorController() {}
+export async function pauseMonitorController(req: Request, res: Response) {}
 
 /**
  * @name resumeMonitorController
@@ -54,14 +54,4 @@ async function pauseMonitorController() {}
  * @access Private
  */
 
-async function resumeMonitorController() {}
-
-export {
-  createMonitorController,
-  getMonitorsController,
-  getMonitorController,
-  updateMonitorController,
-  deleteMonitorController,
-  pauseMonitorController,
-  resumeMonitorController,
-};
+export async function resumeMonitorController(req: Request, res: Response) {}
