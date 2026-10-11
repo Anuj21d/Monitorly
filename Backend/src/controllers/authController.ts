@@ -1,4 +1,8 @@
 import type { Response, Request } from "express";
+import pool from "../config/database.js";
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import bcrypt from "bcrypt";
+import { registerSchema } from "../validators/auth.validator.js";
 
 /**
  * @name registerUserController
@@ -6,7 +10,63 @@ import type { Response, Request } from "express";
  * @access Public
  */
 
-async function registerUserController(res: Response, req: Request) {}
+async function registerUserController(req: Request, res: Response) {
+  try {
+    const validation = registerSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: "Invalid registration data",
+        errors: validation.error.issues,
+      });
+    }
+
+    const { username, email, password } = validation.data;
+
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
+      [email],
+    );
+
+    if (rows.length > 0) {
+      return res.status(409).json({
+        message: "Account Already Exists With this email",
+      });
+    }
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const [result] = await pool.execute<ResultSetHeader>(
+      "INSERT INTO users (username , email , password ) VALUES (?,?,?)",
+      [username, email, hashPassword],
+    );
+
+    return res.status(201).json({
+      message: "User Created Successfully",
+      user: {
+        id: result.insertId,
+        username,
+        email,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      typeof error.code === "string" &&
+      error.code === "ER_DUP_ENTRY"
+    ) {
+      return res.status(409).json({
+        message: "Account already exists with this email",
+      });
+    }
+
+    console.error("Registration error:", error);
+
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
+}
 
 /**
  * @name loginUserController
