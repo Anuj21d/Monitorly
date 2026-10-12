@@ -1,17 +1,18 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import pool from "../config/database.js";
 import type { AuthUser } from "../types/auth.types.js";
 
 /**
  * @name authUser
- * @description Verify the JWT stored in an HTTP-only cookie
- * @access Private
+ * @description Verify the JWT and reject revoked tokens
+ * @access Middleware
  */
-export function authUser(
+export async function authUser(
   req: Request,
   res: Response,
   next: NextFunction,
-): void {
+): Promise<void> {
   const token = req.cookies?.token;
 
   if (typeof token !== "string" || !token) {
@@ -41,10 +42,28 @@ export function authUser(
       !Number.isSafeInteger(decoded.id) ||
       decoded.id <= 0 ||
       typeof decoded.username !== "string" ||
-      decoded.username.length === 0
+      decoded.username.length === 0 ||
+      typeof decoded.jti !== "string" ||
+      typeof decoded.exp !== "number"
     ) {
       res.status(401).json({
         message: "Invalid authentication token",
+      });
+      return;
+    }
+
+    // Check whether this token has been revoked.
+    const [rows] = await pool.execute(
+      `SELECT jti
+       FROM revoked_tokens
+       WHERE jti = ?
+       LIMIT 1`,
+      [decoded.jti],
+    );
+
+    if (Array.isArray(rows) && rows.length > 0) {
+      res.status(401).json({
+        message: "Token has been revoked. Please log in again.",
       });
       return;
     }
@@ -58,15 +77,17 @@ export function authUser(
 
     next();
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
+    if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({
-        message: "Session expired. Please login again",
+        message: "Invalid or expired authentication token",
       });
       return;
     }
 
-    res.status(401).json({
-      message: "Invalid authentication token",
+    console.error("Authentication middleware error:", error);
+
+    res.status(500).json({
+      message: "Server error",
     });
   }
 }
