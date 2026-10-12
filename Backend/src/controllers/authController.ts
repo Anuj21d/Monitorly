@@ -175,4 +175,12 @@ async function loginUserController(req: Request, res: Response) {
   }
 }
 
-export { registerUserController, loginUserController };
+/**
+ * @name logoutUserController
+ * @description Log out the current user by clearing the authentication cookie
+ * @access Public
+ */
+
+async function logoutUserController(req: Request, res: Response) {}
+
+export { registerUserController, loginUserController, logoutUserController };

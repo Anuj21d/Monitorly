@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   loginUserController,
+  logoutUserController,
   registerUserController,
 } from "../controllers/authController.js";
 
@@ -21,3 +22,11 @@ authRouter.post("/register", registerUserController);
  */
 
 authRouter.post("/login", loginUserController);
+
+/**
+ * @route POST /api/auth/logout
+ * @description Clear the authentication cookie to log out the user
+ * @access Public
+ */
+
+authRouter.post("/logout", logoutUserController);
