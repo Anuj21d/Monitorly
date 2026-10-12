@@ -3,6 +3,7 @@ import pool from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import bcrypt from "bcrypt";
 import { registerSchema } from "../validators/auth.validator.js";
+import jwt from "jsonwebtoken";
 
 /**
  * @name registerUserController
@@ -40,7 +41,30 @@ async function registerUserController(req: Request, res: Response) {
       [username, email, hashPassword],
     );
 
-    return res.status(201).json({
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
+    const token = jwt.sign(
+      {
+        id: result.insertId,
+        username,
+      },
+      jwtSecret,
+      {
+        expiresIn: "1d",
+      },
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 3600000,
+    });
+
+    res.status(201).json({
       message: "User Created Successfully",
       user: {
         id: result.insertId,
