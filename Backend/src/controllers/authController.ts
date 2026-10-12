@@ -4,9 +4,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import bcrypt from "bcrypt";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { randomUUID } from "node:crypto";
 
 /**
  * @name registerUserController
@@ -49,10 +47,13 @@ async function registerUserController(req: Request, res: Response) {
       throw new Error("JWT_SECRET is not configured");
     }
 
+    const jti = randomUUID();
+
     const token = jwt.sign(
       {
         id: result.insertId,
         username,
+        jti,
       },
       jwtSecret,
       {
@@ -140,10 +141,13 @@ async function loginUserController(req: Request, res: Response) {
       throw new Error("JWT_SECRET is not configured");
     }
 
+    const jti = randomUUID();
+
     const token = jwt.sign(
       {
         username: user.username,
         id: user.id,
+        jti,
       },
       jwtSecret,
       {
@@ -181,6 +185,86 @@ async function loginUserController(req: Request, res: Response) {
  * @access Public
  */
 
-async function logoutUserController(req: Request, res: Response) {}
+async function logoutUserController(req: Request, res: Response) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict" as const,
+    path: "/",
+  };
+
+  const token = req.cookies?.token;
+
+  if (typeof token !== "string" || !token) {
+    res.clearCookie("token", cookieOptions);
+
+    return res.status(200).json({
+      message: "User logged out successfully",
+    });
+  }
+
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    console.error("JWT_SECRET is not configured");
+
+    return res.status(500).json({
+      message: "Server configuration error",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, secret);
+
+    if (
+      typeof decoded === "string" ||
+      typeof decoded.jti !== "string" ||
+      typeof decoded.exp !== "number"
+    ) {
+      res.clearCookie("token", cookieOptions);
+
+      return res.status(401).json({
+        message: "Invalid authentication token",
+      });
+    }
+
+    const expiresAt = new Date(decoded.exp * 1000);
+
+    await pool.execute(
+      `INSERT INTO revoked_tokens (jti, expires_at)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE jti = VALUES(jti)`,
+      [decoded.jti, expiresAt],
+    );
+
+    res.clearCookie("token", cookieOptions);
+
+    return res.status(200).json({
+      message: "User logged out successfully",
+    });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      res.clearCookie("token", cookieOptions);
+
+      return res.status(200).json({
+        message: "User logged out successfully",
+      });
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.clearCookie("token", cookieOptions);
+
+      return res.status(200).json({
+        message: "User logged out successfully",
+      });
+    }
+
+    console.error("Logout error:", error);
+
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
+}
 
 export { registerUserController, loginUserController, logoutUserController };
