@@ -3,10 +3,13 @@ import { motion } from "motion/react";
 import Button from "../components/Button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const RegisterPage = () => {
   const [hide, setHide] = useState("hide");
   const navigate = useNavigate();
+
+  const [credential, setCredential] = useState<string | null>("");
 
   return (
     <section>
@@ -60,6 +63,8 @@ const RegisterPage = () => {
                   }}
                   className="flex items-center justify-center gap-2"
                 >
+                 
+            
                   <span className="scale-80">
                     <img src="/google-stroke-rounded.svg" alt="Google logo" />
                   </span>
