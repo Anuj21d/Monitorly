@@ -2,9 +2,17 @@ import type { Response, Request } from "express";
 import pool from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import bcrypt from "bcrypt";
-import { loginSchema, registerSchema } from "../validators/auth.validator.js";
+import {
+  googleAuthSchema,
+  loginSchema,
+  registerSchema,
+} from "../validators/auth.validator.js";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
+import { verifyGoogleCode } from "../services/googleAuthServiece.js";
+import { findGoogleUser } from "../services/findGoogleUser.js";
+import { createGoogleUser } from "../services/createGoogleUser.js";
+import z from "zod";
 
 /**
  * @name registerUserController
@@ -273,9 +281,110 @@ async function logoutUserController(req: Request, res: Response) {
  * @access Public
  */
 
-async function googleAuthController(req: Request, res: Response) {
-  
-}
+const googleAuthController = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const result = googleAuthSchema.safeParse(req.body);
+
+    if (!result.success) {
+      res.status(400).json({
+        message: "Invalid request data",
+        errors: result.error.flatten(),
+      });
+      return;
+    }
+
+    const { code } = result.data;
+
+    // 1. Verify Google's authorization code.
+    const googleUser = await verifyGoogleCode(code);
+
+    if (!googleUser.emailVerified) {
+      res.status(403).json({
+        message: "Please use a verified Google email",
+      });
+      return;
+    }
+
+    // 2. Check whether this Google identity already exists.
+    let user = await findGoogleUser(googleUser.sub);
+
+    if (!user) {
+      // 3. Check for an existing account with the same email.
+      const [rows] = await pool.execute(
+        "SELECT id FROM users WHERE email = ? LIMIT 1",
+        [googleUser.email],
+      );
+
+      if ((rows as unknown[]).length > 0) {
+        res.status(409).json({
+          message:
+            "An account with this email already exists. Sign in to that account before linking Google.",
+        });
+        return;
+      }
+
+      const usernameSchema = z.string().trim().min(1);
+
+      const username = usernameSchema.parse(
+        googleUser.name?.trim() ||
+          googleUser.email.split("@")[0] ||
+          "Google User",
+      );
+
+      // 4. Create a new Monitorly user and link Google.
+      user = await createGoogleUser({
+        username,
+        email: googleUser.email,
+        googleSub: googleUser.sub,
+      });
+    }
+
+    // 5. Issue a Monitorly JWT.
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
+    const jti = randomUUID();
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        jti,
+      },
+      secret,
+      { expiresIn: "1d" },
+    );
+
+    // 6. Set the authentication cookie.
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Google authentication successful",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Google authentication error:", error);
+
+    res.status(500).json({
+      message: "Google authentication failed",
+    });
+  }
+};
 
 export {
   registerUserController,

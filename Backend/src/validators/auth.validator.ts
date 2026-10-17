@@ -22,3 +22,9 @@ export const loginSchema = z.object({
       "Password cannot contain only spaces",
     ),
 });
+
+export const googleAuthSchema = z.object({
+  code: z.string().trim().min(1, "Google authorization code is required"),
+});
+
+export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;

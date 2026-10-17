@@ -16,7 +16,9 @@ export async function verifyGoogleCode(code: string) {
   // Verify the ID token
   const ticket = await googleClient.verifyIdToken({
     idToken: tokens.id_token,
-    audience: process.env.GOOGLE_CLIENT_ID,
+    ...(process.env.GOOGLE_CLIENT_ID
+      ? { audience: process.env.GOOGLE_CLIENT_ID }
+      : {}),
   });
 
   // Extract the verified user's information

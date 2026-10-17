@@ -3,6 +3,7 @@ import {
   loginUserController,
   logoutUserController,
   registerUserController,
+  googleAuthController
 } from "../controllers/authController.js";
 
 export const authRouter = Router();
