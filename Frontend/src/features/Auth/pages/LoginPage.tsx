@@ -9,7 +9,9 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [hide, setHide] = useState("hide");
 
-  const { googleAuth } = useGoogleAuth();
+  const { googleAuth, isLoading, error } = useGoogleAuth(() => {
+    navigate("/dashboard");
+  });
 
   return (
     <section>
@@ -67,12 +69,29 @@ const LoginPage = () => {
                   }}
                   className="flex items-center justify-center gap-2"
                 >
-                  <span className="scale-80">
-                    <img src="/google-stroke-rounded.svg" alt="Google logo" />
-                  </span>
-                  Google SSO
+                  {isLoading ? (
+                    "Signing in..."
+                  ) : (
+                    <>
+                      <span className="scale-80">
+                        <img
+                          src="/google-stroke-rounded.svg"
+                          alt="Google logo"
+                        />
+                      </span>
+                      Google SSO
+                    </>
+                  )}
                 </motion.span>
               </motion.button>
+              {error && (
+                <p
+                  role="alert"
+                  className="text-red-500 font-mono text-xs mt-2 pl-2"
+                >
+                  {error}
+                </p>
+              )}
             </div>
             <div className="relative flex py-2 items-center mb-6">
               <div className="grow border-t border-black/10"></div>

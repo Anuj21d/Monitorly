@@ -2,12 +2,16 @@ import { OAuth2Client } from "google-auth-library";
 
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET
+  process.env.GOOGLE_CLIENT_SECRET,
+  "http://localhost:5173",
 );
 
 export async function verifyGoogleCode(code: string) {
   // Exchange authorization code for Google tokens
-  const { tokens } = await googleClient.getToken(code);
+  const { tokens } = await googleClient.getToken({
+    code,
+    redirect_uri: "http://localhost:5173",
+  });
 
   if (!tokens.id_token) {
     throw new Error("Google ID token is missing");

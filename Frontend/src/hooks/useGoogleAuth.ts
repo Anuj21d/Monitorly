@@ -1,30 +1,55 @@
+import { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
+import { googleAuthService } from "../services/googleAuthService";
 
-export function useGoogleAuth() {
+export function useGoogleAuth(onSuccess?: () => void) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const googleAuth = useGoogleLogin({
     flow: "auth-code",
-    onSuccess: (response) => {
-      console.log("Google authorization succeeded");
 
+    onSuccess: async (response) => {
       const code = response.code;
 
       if (!code) {
-        console.error("Authorization code is missing");
+        setError("Google authorization code is missing");
         return;
       }
 
-      // We'll send this code to your backend in the next step.
-      console.log("Authorization code received");
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await googleAuthService(code);
+
+        console.log("Google login successful:", data.user);
+
+        onSuccess?.();
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Google authentication failed";
+
+        setError(message);
+        console.error("Google authentication failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
     },
 
-    onError: (error) => {
-      console.error("Google OAuth failed", error);
+    onError: () => {
+      setError("Google authorization failed. Please try again.");
     },
 
     onNonOAuthError: (error) => {
-      console.error("Google popup error", error);
+      console.error("Google popup error:", error);
+      setError("The Google sign-in popup could not be completed.");
     },
   });
 
-  return { googleAuth };
+  return {
+    googleAuth,
+    isLoading,
+    error,
+  };
 }
