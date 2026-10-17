@@ -3,11 +3,13 @@ import { motion } from "motion/react";
 import Button from "../components/Button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGoogleLogin } from "@react-oauth/google";
+import { useGoogleAuth } from "../../../hooks/useGoogleAuth";
 
 const RegisterPage = () => {
   const [hide, setHide] = useState("hide");
   const navigate = useNavigate();
+
+  const { googleAuth } = useGoogleAuth();
 
   const [credential, setCredential] = useState<string | null>("");
 
@@ -54,6 +56,7 @@ const RegisterPage = () => {
             <div className="grid mb-6">
               <motion.button
                 type="button"
+                onClick={() => googleAuth()}
                 className="py-3 px-4 rounded-xl bg-white border border-black/15 hover:border-black/30 text-xs font-bold font-mono text-text-dark-primary transition-all shadow-sm hover:shadow"
                 whileHover="hover"
               >
@@ -63,8 +66,6 @@ const RegisterPage = () => {
                   }}
                   className="flex items-center justify-center gap-2"
                 >
-                 
-            
                   <span className="scale-80">
                     <img src="/google-stroke-rounded.svg" alt="Google logo" />
                   </span>

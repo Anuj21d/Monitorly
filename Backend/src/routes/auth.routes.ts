@@ -30,3 +30,11 @@ authRouter.post("/login", loginUserController);
  */
 
 authRouter.post("/logout", logoutUserController);
+
+/**
+ * @route POST /api/auth/google
+ * @description Authenticate or register a user using Google OAuth
+ * @access Public
+ */
+
+authRouter.post("/google", googleAuthController);

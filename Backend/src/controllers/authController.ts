@@ -267,4 +267,19 @@ async function logoutUserController(req: Request, res: Response) {
   }
 }
 
-export { registerUserController, loginUserController, logoutUserController };
+/**
+ * @controller googleAuthController
+ * @description Verify Google authorization code and authenticate the user
+ * @access Public
+ */
+
+async function googleAuthController(req: Request, res: Response) {
+  
+}
+
+export {
+  registerUserController,
+  loginUserController,
+  logoutUserController,
+  googleAuthController,
+};
