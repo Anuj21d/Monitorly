@@ -27,4 +27,9 @@ export const googleAuthSchema = z.object({
   code: z.string().trim().min(1, "Google authorization code is required"),
 });
 
+export const getMeSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+});
+
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;

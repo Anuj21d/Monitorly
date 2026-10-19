@@ -3,8 +3,10 @@ import {
   loginUserController,
   logoutUserController,
   registerUserController,
-  googleAuthController
+  googleAuthController,
+  getMeController,
 } from "../controllers/authController.js";
+import { authUser } from "../middleware/auth.middleware.js";
 
 export const authRouter = Router();
 
@@ -30,7 +32,7 @@ authRouter.post("/login", loginUserController);
  * @access Public
  */
 
-authRouter.post("/logout", logoutUserController);
+authRouter.post("/logout", authUser, logoutUserController);
 
 /**
  * @route POST /api/auth/google
@@ -39,3 +41,11 @@ authRouter.post("/logout", logoutUserController);
  */
 
 authRouter.post("/google", googleAuthController);
+
+/**
+ * @route GET /api/auth/me
+ * @description Get Authenticated user info
+ * @access Private
+ */
+
+authRouter.get("/me", authUser, getMeController);

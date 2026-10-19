@@ -1,6 +1,5 @@
 import { Router } from "express";
 
-// 1. Import all your controllers here
 import {
   createMonitorController,
   getMonitorsController,
@@ -10,9 +9,11 @@ import {
   pauseMonitorController,
   resumeMonitorController,
 } from "../controllers/monitorController.js";
+import { authUser } from "../middleware/auth.middleware.js";
 
 export const monitorRouter = Router();
 
+monitorRouter.use(authUser);
 /**
  * @route POST /api/monitors
  * @description Create a new monitor

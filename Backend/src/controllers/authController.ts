@@ -3,6 +3,7 @@ import pool from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import bcrypt from "bcrypt";
 import {
+  getMeSchema,
   googleAuthSchema,
   loginSchema,
   registerSchema,
@@ -13,6 +14,8 @@ import { verifyGoogleCode } from "../services/googleAuthServiece.js";
 import { findGoogleUser } from "../services/findGoogleUser.js";
 import { createGoogleUser } from "../services/createGoogleUser.js";
 import z from "zod";
+import type { AuthUser } from "../types/auth.types.js";
+import { error } from "node:console";
 
 /**
  * @name registerUserController
@@ -278,7 +281,7 @@ async function logoutUserController(req: Request, res: Response) {
 /**
  * @controller googleAuthController
  * @description Verify Google authorization code and authenticate the user
- * @access Public
+ * @access Private
  */
 
 const googleAuthController = async (
@@ -386,9 +389,59 @@ const googleAuthController = async (
   }
 };
 
+/**
+ * @controller getMeController
+ * @description Get the currently authenticated user's profile information.
+ * @access Private
+ */
+
+async function getMeController(req: Request, res: Response) {
+  try {
+    const result = getMeSchema.safeParse(req.user);
+
+    if (!result.success) {
+      return res.status(401).json({
+        message: "Unauthorized: Invalid or malformed session token",
+        error: result.error.flatten(),
+      });
+    }
+
+    const { id } = result.data;
+
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      "SELECT id , email , username FROM users WHERE id = ? LIMIT 1",
+      [id],
+    );
+
+    const user = rows[0];
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User account not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "User profile retrieved successfully",
+      user: {
+        username: user.username,
+        id: user.id,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getMeController:", error);
+
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+}
+
 export {
   registerUserController,
   loginUserController,
   logoutUserController,
   googleAuthController,
+  getMeController,
 };

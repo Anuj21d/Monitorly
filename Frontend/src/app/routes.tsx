@@ -4,8 +4,10 @@ import AuthPage from "../features/Auth/pages/AuthPage";
 import LoginPage from "../features/Auth/pages/LoginPage";
 import RegisterPage from "../features/Auth/pages/RegisterPage";
 import Dashboard from "../features/Dashboard/pages/Dashboard";
+import ProtectedRoute from "../features/Auth/components/ProtectedRoute";
 
 export const router = createBrowserRouter([
+  // Public Routes
   {
     path: "/",
     element: <LandingPage />,
@@ -24,8 +26,17 @@ export const router = createBrowserRouter([
       },
     ],
   },
+
   {
-    path: "/dashboard",
-    element: <Dashboard />,
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/dashboard",
+        element: <Dashboard />,
+      },
+      // Additional protected paths can be added here:
+      // { path: "/settings", element: <SettingsPage /> },
+      // { path: "/monitors", element: <MonitorsPage /> },
+    ],
   },
 ]);
