@@ -4,34 +4,85 @@ import Button from "../components/Button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGoogleAuth } from "../../../hooks/useGoogleAuth";
+import { loginSchema } from "../schemas/authSchemas";
+import { apiClient, useAuth } from "../AuthContext";
+import axios from "axios";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const [hide, setHide] = useState("hide");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [validationError, setValidationError] = useState<string | null>("");
-  const [loginError, setLoginError] = useState<string | null>("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState<boolean>(false);
 
-  const { googleAuth, isLoading, error } = useGoogleAuth(() => {
+  const { refreshUser } = useAuth();
+
+  const {
+    googleAuth,
+    isLoading: isGoogleLoading,
+    error: googleError,
+  } = useGoogleAuth(async () => {
+    await refreshUser();
     navigate("/dashboard");
   });
 
   async function handleSubmitLoginForm(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    
-    
+    setValidationError(null);
+    setLoginError(null);
+
+    const result = loginSchema.safeParse({ email, password });
+
+    if (!result.success) {
+      const firstIssue =
+        result.error.issues[0]?.message || "Invalid email or password.";
+      setValidationError(firstIssue);
+      return;
+    }
+
+    try {
+      setLoginLoading(true);
+      const response = await apiClient.post(`/api/auth/login`, {
+        email: result.data.email,
+        password: result.data.password,
+      });
+
+      if (response.status !== 200) {
+        setLoginError(response.data.message);
+        return;
+      }
+
+      await refreshUser();
+
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          setLoginError("Incorrect email or password.");
+        } else {
+          setLoginError(
+            err.response?.data?.message ||
+              "Failed to sign in. Please try again.",
+          );
+        }
+      } else {
+        setLoginError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoginLoading(false);
+    }
   }
 
   return (
     <section>
       <div className="max-w-7xl w-full mx-auto py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+        {/* Left Branding Column */}
         <div className="lg:col-span-6 space-y-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5A5F]/10 border border-[#FF5A5F]/20">
             <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />
-
             <span className="text-[11px] font-bold tracking-[0.25em] uppercase text-coral">
               Developer Infrastructure
             </span>
@@ -43,13 +94,16 @@ const LoginPage = () => {
             <br />
             <span className="text-coral">visible.</span>
           </h1>
-          <p className="text-base sm:text-lg text-text-light-secondary leading-relaxed max-w-lg font">
+          <p className="text-base sm:text-lg text-text-light-secondary leading-relaxed max-w-lg">
             Access real-time telemetry, active incident root-causes, and
             multi-region synthetic heartbeats in one unified console.
           </p>
         </div>
+
+        {/* Right Form Card */}
         <div className="lg:col-span-6">
           <div className="bg-text-light-primary text-text-dark-primary rounded-[28px] sm:rounded-CARD-lg p-8 sm:p-12 border border-black/10 shadow-2xl relative">
+            {/* Tab Switcher */}
             <div className="flex items-center gap-1 p-1 bg-black/5 rounded-xl border border-black/10 mb-8 font-mono text-xs">
               <button
                 type="button"
@@ -58,30 +112,30 @@ const LoginPage = () => {
                 Log In
               </button>
               <button
-                onClick={() => {
-                  navigate("/auth/register");
-                }}
+                type="button"
+                onClick={() => navigate("/auth/register")}
                 className="flex-1 py-2.5 rounded-lg font-bold tracking-wider transition-all uppercase text-text-dark-secondary hover:text-text-dark-primary"
               >
                 Sign up
               </button>
             </div>
+
+            {/* Google OAuth */}
             <div className="grid mb-6">
               <motion.button
                 type="button"
-                onClick={() => {
-                  googleAuth();
-                }}
-                className="py-3 px-4 rounded-xl bg-white border border-black/15 hover:border-black/30 text-xs font-bold font-mono text-text-dark-primary transition-all shadow-sm hover:shadow"
-                whileHover="hover"
+                disabled={isGoogleLoading || loginLoading}
+                onClick={() => googleAuth()}
+                className="py-3 px-4 rounded-xl bg-white border border-black/15 hover:border-black/30 text-xs font-bold font-mono text-text-dark-primary transition-all shadow-sm hover:shadow disabled:opacity-60"
+                whileHover={isGoogleLoading ? undefined : "hover"}
               >
                 <motion.span
                   variants={{
-                    hover: { scale: 1.08 },
+                    hover: { scale: 1.05 },
                   }}
                   className="flex items-center justify-center gap-2"
                 >
-                  {isLoading ? (
+                  {isGoogleLoading ? (
                     "Signing in..."
                   ) : (
                     <>
@@ -89,6 +143,8 @@ const LoginPage = () => {
                         <img
                           src="/google-stroke-rounded.svg"
                           alt="Google logo"
+                          width={18}
+                          height={18}
                         />
                       </span>
                       Google SSO
@@ -96,54 +152,71 @@ const LoginPage = () => {
                   )}
                 </motion.span>
               </motion.button>
-              {error && (
+              {googleError && (
                 <p
                   role="alert"
                   className="text-red-500 font-mono text-xs mt-2 pl-2"
                 >
-                  {error}
+                  {googleError}
                 </p>
               )}
             </div>
+
+            {/* Divider */}
             <div className="relative flex py-2 items-center mb-6">
-              <div className="grow border-t border-black/10"></div>
+              <div className="grow border-t border-black/10" />
               <span className="shrink mx-4 text-[10px] font-mono uppercase tracking-[0.2em] text-text-light-muted">
                 Or With Email
               </span>
-              <div className="grow border-t border-black/10"></div>
+              <div className="grow border-t border-black/10" />
             </div>
-            <form onSubmit={handleSubmitLoginForm} className="space-y-4">
+
+            {/* Credential Form */}
+            <form
+              onSubmit={handleSubmitLoginForm}
+              className="space-y-4"
+              noValidate
+            >
+              {(validationError || loginError) && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 font-mono text-xs"
+                >
+                  {validationError || loginError}
+                </div>
+              )}
+
               <div>
                 <label
-                  htmlFor=""
+                  htmlFor="work-email"
                   className="block text-[11px] font-bold tracking-wider uppercase text-text-dark-secondary mb-1 font-mono"
                 >
                   Work Email Address
                 </label>
                 <input
-                  required
-                  placeholder="alex@company.com"
-                  type="email"
-                  className="w-full bg-white border border-black/15 focus:border-[#FF5A5F] rounded-xl px-3.5 py-3 text-sm text-text-dark-primary placeholder-neutral font-mono focus:outline-none transition-colors"
+                  id="work-email"
                   name="email"
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                  }}
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="alex@company.com"
                   value={email}
-                  id=""
-                  autoComplete="off"
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white border border-black/15 focus:border-[#FF5A5F] rounded-xl px-3.5 py-3 text-sm text-text-dark-primary placeholder-neutral font-mono focus:outline-none transition-colors"
                 />
               </div>
+
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label
-                    htmlFor=""
+                    htmlFor="account-password"
                     className="block text-[11px] font-bold tracking-wider uppercase text-text-dark-secondary font-mono"
                   >
                     Password
                   </label>
                   <button
                     type="button"
+                    onClick={() => navigate("/auth/forgot-password")}
                     className="text-xs font-mono text-text-dark-secondary hover:text-coral transition-colors"
                   >
                     Forgot password?
@@ -151,44 +224,44 @@ const LoginPage = () => {
                 </div>
                 <div className="relative">
                   <input
-                    required
-                    placeholder="••••••••••••"
-                    className="w-full bg-white border border-black/15 focus:border-[#FF5A5F] rounded-xl px-3.5 py-3 pr-10 text-sm text-text-dark-primary placeholder-neutral font-mono focus:outline-none transition-colors"
-                    type={hide === "hide" ? "password" : "text"}
+                    id="account-password"
                     name="password"
-                    id=""
-                    autoComplete="off"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••••••"
                     value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                    }}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-white border border-black/15 focus:border-[#FF5A5F] rounded-xl px-3.5 py-3 pr-10 text-sm text-text-dark-primary placeholder-neutral font-mono focus:outline-none transition-colors"
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dark-muted hover:text-text-dark-primary"
-                    onClick={() => {
-                      if (hide === "hide") {
-                        setHide("unhide");
-                      } else {
-                        setHide("hide");
-                      }
-                    }}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dark-muted hover:text-text-dark-primary p-1"
                   >
-                    {hide === "hide" ? (
-                      <Eye size={16} strokeWidth={1.5} />
-                    ) : (
+                    {showPassword ? (
                       <EyeClosed size={16} strokeWidth={1.5} />
+                    ) : (
+                      <Eye size={16} strokeWidth={1.5} />
                     )}
                   </button>
                 </div>
               </div>
+
               <div className="pt-2">
-                <Button text="Sign In to Console" />
+                <Button
+                  text={loginLoading ? "Signing in..." : "Sign In to Console"}
+                />
               </div>
             </form>
+
             <div className="mt-8 pt-4 border-t border-black/10 text-center text-[11px] font-mono text-text-dark-muted">
-              By continuing you agree to MonitorPulse's Terms of Service and
-              SOC2 Privacy Standards.
+              By continuing you agree to MonitorPulse&apos;s Terms of Service
+              and SOC2 Privacy Standards.
             </div>
           </div>
         </div>
@@ -198,3 +271,6 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+function refreshUser() {
+  throw new Error("Function not implemented.");
+}
