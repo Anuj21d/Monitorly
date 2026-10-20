@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import PageContainer from "./PageContainer";
 import { motion } from "motion/react";
+import { useNavigate } from "react-router-dom";
 
 type NavItem = {
   path: string;
@@ -23,6 +24,7 @@ const navLink: NavItem[] = [
 ];
 
 const MarketingNavbar = () => {
+  const navigate = useNavigate();
   return (
     <nav className="fixed top-0 flex h-20 w-full items-center justify-between bg-canvas font-body border-b border-border-dark-medium z-10">
       <PageContainer className="flex justify-between items-center w-full">
@@ -66,10 +68,18 @@ const MarketingNavbar = () => {
           </div>
         </div>
         <div className="flex gap-10">
-          <button className="font-mono uppercase text-text-light-secondary text-sm hover:text-text-light-primary font-semibold">
+          <button
+            onClick={() => {
+              navigate("/auth/login");
+            }}
+            className="font-mono uppercase text-text-light-secondary text-sm hover:text-text-light-primary font-semibold"
+          >
             Login
           </button>
           <motion.button
+            onClick={() => {
+              navigate("/auth/register");
+            }}
             className="group flex items-center justify-between gap-1 rounded-control bg-coral px-4 py-2 font-mono text-sm uppercase tracking-tighter text-text-light-primary hover:bg-coral-hover"
             whileHover="hover"
           >

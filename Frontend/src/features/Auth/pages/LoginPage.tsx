@@ -8,6 +8,38 @@ import { loginSchema } from "../schemas/authSchemas";
 import { apiClient, useAuth } from "../AuthContext";
 import axios from "axios";
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const leftPanelVariants = {
+  hidden: { opacity: 0, x: -24 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: "easeOut" as const },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 24, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.55, ease: "easeOut" as const },
+  },
+};
+
+
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -78,9 +110,17 @@ const LoginPage = () => {
 
   return (
     <section>
-      <div className="max-w-7xl w-full mx-auto py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-7xl w-full mx-auto py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center"
+      >
         {/* Left Branding Column */}
-        <div className="lg:col-span-6 space-y-8">
+        <motion.div
+          variants={leftPanelVariants}
+          className="lg:col-span-6 space-y-8"
+        >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF5A5F]/10 border border-[#FF5A5F]/20">
             <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />
             <span className="text-[11px] font-bold tracking-[0.25em] uppercase text-coral">
@@ -98,10 +138,10 @@ const LoginPage = () => {
             Access real-time telemetry, active incident root-causes, and
             multi-region synthetic heartbeats in one unified console.
           </p>
-        </div>
+        </motion.div>
 
         {/* Right Form Card */}
-        <div className="lg:col-span-6">
+        <motion.div variants={cardVariants} className="lg:col-span-6">
           <div className="bg-text-light-primary text-text-dark-primary rounded-[28px] sm:rounded-CARD-lg p-8 sm:p-12 border border-black/10 shadow-2xl relative">
             {/* Tab Switcher */}
             <div className="flex items-center gap-1 p-1 bg-black/5 rounded-xl border border-black/10 mb-8 font-mono text-xs">
@@ -265,8 +305,8 @@ const LoginPage = () => {
               and SOC2 Privacy Standards.
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 };
