@@ -14,8 +14,6 @@ import { verifyGoogleCode } from "../services/googleAuthServiece.js";
 import { findGoogleUser } from "../services/findGoogleUser.js";
 import { createGoogleUser } from "../services/createGoogleUser.js";
 import z from "zod";
-import type { AuthUser } from "../types/auth.types.js";
-import { error } from "node:console";
 
 /**
  * @name registerUserController

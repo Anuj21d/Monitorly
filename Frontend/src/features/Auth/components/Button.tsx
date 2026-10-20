@@ -3,13 +3,15 @@ import { motion } from "motion/react";
 
 type ButtonProps = {
   text: string;
+  disabled?: boolean;
 };
 
-const Button = ({ text }: ButtonProps) => {
+const Button = ({ text, disabled }: ButtonProps) => {
   return (
     <motion.button
       className="w-full group inline-flex items-center justify-center gap-2 py-4 px-6 rounded-xl text-xs font-bold tracking-widest uppercase bg-coral hover:bg-coral-hover text-white transition-all shadow-lg shadow-[#FF5A5F]/20 disabled:opacity-50 active:scale-[0.99]"
       whileHover="hover"
+      disabled={disabled}
     >
       {text}
       <motion.span

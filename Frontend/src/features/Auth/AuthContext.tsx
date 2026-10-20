@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import {
   createContext,
@@ -34,24 +33,31 @@ type AuthContextType = {
   authError: string | null;
   setAuthError: Dispatch<SetStateAction<string | null>>;
   refreshUser: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 type AuthContextProviderProps = {
   children: ReactNode;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export default AuthContext;
 
-export function AuthContextProvider({
-  children,
-}: AuthContextProviderProps) {
+export function AuthContextProvider({ children }: AuthContextProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  async function logout(): Promise<void> {
+    try {
+      await apiClient.post("/api/auth/logout");
+    } catch (err) {
+      console.error("Failed to invalidate session on server:", err);
+    } finally {
+      setUser(null);
+    }
+  }
 
   async function refreshUser(): Promise<void> {
     try {
@@ -64,16 +70,11 @@ export function AuthContextProvider({
 
       setUser(response.data.user);
     } catch (error) {
-      if (
-        axios.isAxiosError(error) &&
-        error.response?.status === 401
-      ) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         setUser(null);
       } else {
         console.error("Failed to refresh user:", error);
-        setAuthError(
-          "Unable to verify your session. Please try again."
-        );
+        setAuthError("Unable to verify your session. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -92,22 +93,17 @@ export function AuthContextProvider({
     authError,
     setAuthError,
     refreshUser,
+    logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
   if (context === undefined) {
-    throw new Error(
-      "useAuth must be used within AuthContextProvider"
-    );
+    throw new Error("useAuth must be used within AuthContextProvider");
   }
 
   return context;

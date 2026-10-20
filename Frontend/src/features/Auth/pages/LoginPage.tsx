@@ -255,6 +255,7 @@ const LoginPage = () => {
               <div className="pt-2">
                 <Button
                   text={loginLoading ? "Signing in..." : "Sign In to Console"}
+                  disabled={loginLoading}
                 />
               </div>
             </form>

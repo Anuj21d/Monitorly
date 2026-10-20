@@ -1,8 +1,31 @@
 import { ChevronDown, ChevronUp, House, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../Auth/AuthContext";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Navbar = () => {
   const [navDiv, setNavDiv] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+
+  async function handleLogout() {
+    setLogoutError(null);
+
+    try {
+      await logout();
+      navigate("/auth/login");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setLogoutError(
+          err.response?.data?.message ?? "Logout failed. Please try again.",
+        );
+      } else {
+        setLogoutError("Something went wrong. Please try again.");
+      }
+    }
+  }
   return (
     <header className="w-full h-20 bg-canvas border-b border-white/8 sticky top-0 z-40 select-none">
       <div className="max-w-7xl mx-auto h-full px-6 lg:px-12 flex items-center justify-between">
@@ -53,10 +76,18 @@ const Navbar = () => {
                 <span>View Landing Page</span>
               </button>
               <div className="border-t border-white/8 my-1"></div>
-              <button className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-coral hover:bg-[#FF5A5F]/10 transition-colors">
+              <button
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-coral hover:bg-[#FF5A5F]/10 transition-colors"
+                onClick={handleLogout}
+              >
                 <LogOut size={16} strokeWidth={1.5} />
                 <span>Logout</span>
               </button>
+              {logoutError && (
+                <p role="alert" className="text-sm text-red-500">
+                  {logoutError}
+                </p>
+              )}
             </div>
           )}
         </div>

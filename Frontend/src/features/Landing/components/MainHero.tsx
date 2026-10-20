@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import Button from "../components/Button";
+import Button from "./Button";
 
 const MainHero = () => {
   return (
