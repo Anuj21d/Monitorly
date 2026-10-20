@@ -9,9 +9,21 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [hide, setHide] = useState("hide");
 
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [validationError, setValidationError] = useState<string | null>("");
+  const [loginError, setLoginError] = useState<string | null>("");
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
+
   const { googleAuth, isLoading, error } = useGoogleAuth(() => {
     navigate("/dashboard");
   });
+
+  async function handleSubmitLoginForm(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    
+    
+  }
 
   return (
     <section>
@@ -96,11 +108,11 @@ const LoginPage = () => {
             <div className="relative flex py-2 items-center mb-6">
               <div className="grow border-t border-black/10"></div>
               <span className="shrink mx-4 text-[10px] font-mono uppercase tracking-[0.2em] text-text-light-muted">
-                Or With Work Email
+                Or With Email
               </span>
               <div className="grow border-t border-black/10"></div>
             </div>
-            <form action="" className="space-y-4">
+            <form onSubmit={handleSubmitLoginForm} className="space-y-4">
               <div>
                 <label
                   htmlFor=""
@@ -113,7 +125,11 @@ const LoginPage = () => {
                   placeholder="alex@company.com"
                   type="email"
                   className="w-full bg-white border border-black/15 focus:border-[#FF5A5F] rounded-xl px-3.5 py-3 text-sm text-text-dark-primary placeholder-neutral font-mono focus:outline-none transition-colors"
-                  name=""
+                  name="email"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
+                  value={email}
                   id=""
                   autoComplete="off"
                 />
@@ -139,9 +155,13 @@ const LoginPage = () => {
                     placeholder="••••••••••••"
                     className="w-full bg-white border border-black/15 focus:border-[#FF5A5F] rounded-xl px-3.5 py-3 pr-10 text-sm text-text-dark-primary placeholder-neutral font-mono focus:outline-none transition-colors"
                     type={hide === "hide" ? "password" : "text"}
-                    name=""
+                    name="password"
                     id=""
                     autoComplete="off"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                    }}
                   />
                   <button
                     type="button"

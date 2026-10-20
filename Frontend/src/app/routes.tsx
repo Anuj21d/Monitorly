@@ -1,4 +1,6 @@
-import { createBrowserRouter } from "react-router";
+
+import { createBrowserRouter } from "react-router-dom";
+
 import LandingPage from "../features/Landing/pages/LandingPage";
 import AuthPage from "../features/Auth/pages/AuthPage";
 import LoginPage from "../features/Auth/pages/LoginPage";
@@ -7,7 +9,7 @@ import Dashboard from "../features/Dashboard/pages/Dashboard";
 import ProtectedRoute from "../features/Auth/components/ProtectedRoute";
 
 export const router = createBrowserRouter([
-  // Public Routes
+  // Public routes
   {
     path: "/",
     element: <LandingPage />,
@@ -27,6 +29,7 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Protected routes
   {
     element: <ProtectedRoute />,
     children: [
@@ -34,9 +37,7 @@ export const router = createBrowserRouter([
         path: "/dashboard",
         element: <Dashboard />,
       },
-      // Additional protected paths can be added here:
-      // { path: "/settings", element: <SettingsPage /> },
-      // { path: "/monitors", element: <MonitorsPage /> },
+      // Add other protected routes here.
     ],
   },
 ]);
