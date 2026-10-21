@@ -38,7 +38,6 @@ const cardVariants = {
   },
 };
 
-
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -59,7 +58,7 @@ const RegisterPage = () => {
     error: googleError,
   } = useGoogleAuth(async () => {
     await refreshUser();
-    navigate("/dashboard");
+    navigate("/dashboard", { replace: true });
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,7 +89,7 @@ const RegisterPage = () => {
       });
 
       await refreshUser();
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         setValidationError(
@@ -145,7 +144,7 @@ const RegisterPage = () => {
               <button
                 type="button"
                 className="flex-1 py-2.5 rounded-lg font-bold tracking-wider transition-all uppercase text-text-dark-secondary hover:text-text-dark-primary"
-                onClick={() => navigate("/auth/login")}
+                onClick={() => navigate("/auth/login", { replace: true })}
               >
                 Log In
               </button>

@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, House, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../Auth/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Navbar = () => {
@@ -9,6 +9,15 @@ const Navbar = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState<string | null>(null);
+
+  const location = useLocation();
+
+  const navItems = [
+    { label: "Dashboard", path: "/dashboard" },
+    { label: "Api Tester", path: "/api-tester" },
+  ];
+
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   async function handleLogout() {
     setLogoutError(null);
@@ -34,10 +43,28 @@ const Navbar = () => {
             Monitor
             <span className="text-[#FF5A5F]">Pulse</span>
           </div>
-          <nav className="hidden sm:flex items-center gap-2">
-            <button className="px-3.5 py-1.5 font-body rounded-lg text-sm font-semibold transition-all text-[#FF5A5F] bg-card-elevated border border-white/8">
-              Dashboard
-            </button>
+          <nav
+            className="hidden sm:flex items-center gap-2"
+            aria-label="Main Navigation"
+          >
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`px-3.5 py-1.5 font-body rounded-lg text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/60 ${
+                    isActive
+                      ? "text-[#FF5A5F] bg-card-elevated border border-white/8 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
           </nav>
         </div>
         <div className="relative">

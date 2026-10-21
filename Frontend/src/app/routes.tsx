@@ -1,4 +1,3 @@
-
 import { createBrowserRouter } from "react-router-dom";
 
 import LandingPage from "../features/Landing/pages/LandingPage";
@@ -7,6 +6,7 @@ import LoginPage from "../features/Auth/pages/LoginPage";
 import RegisterPage from "../features/Auth/pages/RegisterPage";
 import Dashboard from "../features/Dashboard/pages/Dashboard";
 import ProtectedRoute from "../features/Auth/components/ProtectedRoute";
+import { ApiTesterPage } from "../features/ApiTester/pages/ApiTesterPage";
 
 export const router = createBrowserRouter([
   // Public routes
@@ -37,7 +37,10 @@ export const router = createBrowserRouter([
         path: "/dashboard",
         element: <Dashboard />,
       },
-      // Add other protected routes here.
+      {
+        path: "/api-tester",
+        element: <ApiTesterPage />,
+      },
     ],
   },
 ]);

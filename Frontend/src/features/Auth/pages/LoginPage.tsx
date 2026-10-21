@@ -38,8 +38,6 @@ const cardVariants = {
   },
 };
 
-
-
 const LoginPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -58,7 +56,7 @@ const LoginPage = () => {
     error: googleError,
   } = useGoogleAuth(async () => {
     await refreshUser();
-    navigate("/dashboard");
+    navigate("/dashboard", { replace: true });
   });
 
   async function handleSubmitLoginForm(e: React.SubmitEvent<HTMLFormElement>) {
@@ -89,7 +87,7 @@ const LoginPage = () => {
 
       await refreshUser();
 
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
@@ -153,7 +151,7 @@ const LoginPage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate("/auth/register")}
+                onClick={() => navigate("/auth/register", { replace: true })}
                 className="flex-1 py-2.5 rounded-lg font-bold tracking-wider transition-all uppercase text-text-dark-secondary hover:text-text-dark-primary"
               >
                 Sign up
