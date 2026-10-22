@@ -1,4 +1,11 @@
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+export type HttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "HEAD"
+  | "OPTIONS";
 
 export interface KeyValueRow {
   id: string;
@@ -8,7 +15,7 @@ export interface KeyValueRow {
   enabled: boolean;
 }
 
-export type AuthType = 'none' | 'bearer' | 'basic' | 'apikey';
+export type AuthType = "none" | "bearer" | "basic" | "apikey";
 
 export interface BearerAuthConfig {
   token: string;
@@ -22,19 +29,35 @@ export interface BasicAuthConfig {
 export interface ApiKeyAuthConfig {
   key: string;
   value: string;
-  addTo: 'header' | 'query';
+  addTo: "header" | "query";
 }
 
-export interface AuthConfig {
-  type: AuthType;
-  bearer: BearerAuthConfig;
-  basic: BasicAuthConfig;
-  apiKey: ApiKeyAuthConfig;
-}
+export type AuthConfig =
+  | {
+      type: "none";
+    }
+  | {
+      type: "bearer";
+      bearer: BearerAuthConfig;
+    }
+  | {
+      type: "basic";
+      basic: BasicAuthConfig;
+    }
+  | {
+      type: "apikey";
+      apiKey: ApiKeyAuthConfig;
+    };
 
-export type BodyType = 'none' | 'json' | 'raw' | 'urlencoded' | 'formdata' | 'binary';
+export type BodyType =
+  | "none"
+  | "json"
+  | "raw"
+  | "urlencoded"
+  | "formdata"
+  | "binary";
 
-export type RawBodyFormat = 'text' | 'javascript' | 'html' | 'xml';
+export type RawBodyFormat = "text" | "javascript" | "html" | "xml";
 
 export interface RequestBodyConfig {
   type: BodyType;
@@ -59,11 +82,17 @@ export interface RequestSettings {
   customName: string;
 }
 
-export type RequestTabKey = 'params' | 'auth' | 'headers' | 'body' | 'scripts' | 'settings';
+export type RequestTabKey =
+  | "params"
+  | "auth"
+  | "headers"
+  | "body"
+  | "scripts"
+  | "settings";
 
-export type ResponseTabKey = 'body' | 'headers' | 'cookies' | 'tests';
+export type ResponseTabKey = "body" | "headers" | "cookies" | "tests";
 
-export type ResponseBodyViewMode = 'pretty' | 'raw' | 'preview';
+export type ResponseBodyViewMode = "pretty" | "raw" | "preview";
 
 export interface ResponseHeaderItem {
   key: string;
@@ -82,7 +111,7 @@ export interface ResponseCookieItem {
 
 export interface TestResultItem {
   name: string;
-  status: 'passed' | 'failed' | 'skipped';
+  status: "passed" | "failed" | "skipped";
   message?: string;
 }
 
@@ -90,29 +119,30 @@ export interface ApiResponseData {
   status: number;
   statusText: string;
   durationMs: number;
-  sizeBytes: number;
+  sizeBytes?: number;
   timestamp: string;
   headers: ResponseHeaderItem[];
-  cookies: ResponseCookieItem[];
+  cookies?: ResponseCookieItem[];
   body: string;
   contentType: string;
-  isSimulatedPreview: boolean;
-  testResults: TestResultItem[];
+  isSimulatedPreview?: boolean;
+  testResults?: TestResultItem[];
 }
 
-export type UiRequestStatus = 'idle' | 'loading' | 'success' | 'error';
+export type UiRequestStatus = "idle" | "loading" | "success" | "error";
 
 export interface RequestHistoryItem {
   id: string;
   name: string;
   method: HttpMethod;
   url: string;
-  status: number;
+  status: number | null;
   statusText: string;
   durationMs: number;
   sizeBytes: number;
   timestamp: string;
   requestConfig: ApiRequestConfig;
+  errorMessage?: string;
 }
 
 export interface SavedRequest {
@@ -130,6 +160,8 @@ export interface ApiFolder {
   id: string;
   name: string;
   collectionId: string;
+  parentFolderId?: string;
+  folders: ApiFolder[];
   requests: SavedRequest[];
 }
 
