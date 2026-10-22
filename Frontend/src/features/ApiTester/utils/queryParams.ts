@@ -1,4 +1,4 @@
-import type { KeyValueRow } from '../types/apiTester.types';
+import type { KeyValueRow } from "../types/apiTester.types";
 
 /**
  * Builds a valid query string from enabled key-value rows.
@@ -6,7 +6,7 @@ import type { KeyValueRow } from '../types/apiTester.types';
  */
 export function buildQueryString(rows: KeyValueRow[]): string {
   const activeRows = rows.filter((r) => r.enabled && r.key.trim().length > 0);
-  if (activeRows.length === 0) return '';
+  if (activeRows.length === 0) return "";
 
   const params = new URLSearchParams();
   for (const row of activeRows) {
@@ -14,16 +14,19 @@ export function buildQueryString(rows: KeyValueRow[]): string {
   }
 
   const qs = params.toString();
-  return qs ? `?${qs}` : '';
+  return qs ? `?${qs}` : "";
 }
 
 /**
  * Strips existing query parameters from a URL string, returning [baseUrl, existingQueryRows].
  */
-export function parseUrlQuery(rawUrl: string): { baseUrl: string; params: KeyValueRow[] } {
-  if (!rawUrl) return { baseUrl: '', params: [] };
+export function parseUrlQuery(rawUrl: string): {
+  baseUrl: string;
+  params: KeyValueRow[];
+} {
+  if (!rawUrl) return { baseUrl: "", params: [] };
 
-  const qIndex = rawUrl.indexOf('?');
+  const qIndex = rawUrl.indexOf("?");
   if (qIndex === -1) {
     return { baseUrl: rawUrl, params: [] };
   }
@@ -39,7 +42,7 @@ export function parseUrlQuery(rawUrl: string): { baseUrl: string; params: KeyVal
         id: `param-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         key,
         value,
-        description: '',
+        description: "",
         enabled: true,
       });
     });
@@ -55,7 +58,7 @@ export function parseUrlQuery(rawUrl: string): { baseUrl: string; params: KeyVal
  */
 export function applyParamsToUrl(baseUrl: string, rows: KeyValueRow[]): string {
   // Strip any existing query params from the base URL first
-  const cleanBase = baseUrl.split('?')[0] || '';
+  const cleanBase = baseUrl.split("?")[0] || "";
   const qs = buildQueryString(rows);
   return `${cleanBase}${qs}`;
 }
@@ -67,21 +70,30 @@ export function applyParamsToUrl(baseUrl: string, rows: KeyValueRow[]): string {
 export function validateUrl(url: string): { isValid: boolean; error?: string } {
   const trimmed = url.trim();
   if (!trimmed) {
-    return { isValid: false, error: 'URL cannot be empty' };
+    return { isValid: false, error: "URL cannot be empty" };
   }
-
-  // Relative paths like /api/... or api/...
-  if (trimmed.startsWith('/') || trimmed.startsWith('localhost:')) {
-    return { isValid: true };
-  }
-
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return { isValid: false, error: 'Only HTTP and HTTPS protocols are supported' };
+
+    if (!parsed.hostname) {
+      return {
+        isValid: false,
+        error: "URL must include a hostname",
+      };
     }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return {
+        isValid: false,
+        error: "Only HTTP and HTTPS protocols are supported",
+      };
+    }
+
     return { isValid: true };
   } catch {
-    return { isValid: false, error: 'Invalid URL format (e.g. https://api.example.com/v1/users)' };
+    return {
+      isValid: false,
+      error: "Invalid URL format (e.g. https://api.example.com/v1/users)",
+    };
   }
 }

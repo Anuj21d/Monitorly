@@ -161,7 +161,7 @@ export interface ApiFolder {
   name: string;
   collectionId: string;
   parentFolderId?: string;
-  folders: ApiFolder[];
+  folders?: ApiFolder[];
   requests: SavedRequest[];
 }
 
