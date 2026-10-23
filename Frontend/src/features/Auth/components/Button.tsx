@@ -26,4 +26,5 @@ const Button = ({ text, disabled }: ButtonProps) => {
   );
 };
 
+
 export default Button;
