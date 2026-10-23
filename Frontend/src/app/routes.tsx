@@ -29,7 +29,6 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Protected routes
   {
     element: <ProtectedRoute />,
     children: [
