@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 
 const SearchBar = () => {
   // Track which filter is currently active

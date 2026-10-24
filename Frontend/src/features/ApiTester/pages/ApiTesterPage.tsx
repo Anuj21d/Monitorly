@@ -1,13 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useApiRequest } from "../hooks/useApiRequest";
 import { ApiTesterSidebar } from "../components/ApiTesterSidebar";
 import { RequestWorkspace } from "../components/RequestWorkspace";
 import {
   ChevronDown,
-  Settings as SettingsIcon,
-  Globe,
-  FileCode,
-  LogOut,
   X,
   Check,
   Plus,
@@ -30,7 +26,7 @@ interface ApiTesterPageProps {
 export const ApiTesterPage: React.FC<ApiTesterPageProps> = () => {
   const requestHook = useApiRequest();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [, setProfileDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState<
     "production" | "staging" | "sandbox"
@@ -41,7 +37,7 @@ export const ApiTesterPage: React.FC<ApiTesterPageProps> = () => {
   const [copiedCurl, setCopiedCurl] = useState(false);
 
   // Compute active hierarchy breadcrumb
-  const activePath = useMemo(() => {
+  const activePath = (() => {
     for (const c of requestHook.collections) {
       const rootReq = c.requests.find((r) => r.id === requestHook.requestId);
       if (rootReq) {
@@ -90,13 +86,7 @@ export const ApiTesterPage: React.FC<ApiTesterPageProps> = () => {
       folder: "Authentication",
       request: requestHook.requestName || "Login Endpoint",
     };
-  }, [
-    requestHook.collections,
-    requestHook.requestId,
-    requestHook.requestName,
-    requestHook.parentCollectionId,
-    requestHook.parentFolderId,
-  ]);
+  })();
 
   const handleCopyCurl = () => {
     let curl = `curl -X ${requestHook.method} "${requestHook.fullUrl}"`;

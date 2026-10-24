@@ -57,7 +57,7 @@ export const RequestHistory: React.FC<RequestHistoryProps> = ({
               OPTIONS: 'text-slate-400 bg-slate-500/10',
             };
 
-            const isSuccess = item.status >= 200 && item.status < 300;
+            const isSuccess = item.status != null && item.status >= 200 && item.status < 300;
 
             return (
               <button

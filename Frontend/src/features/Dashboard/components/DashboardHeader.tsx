@@ -1,4 +1,4 @@
-import { CirclePlus, X } from "lucide-react";
+import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 import type { Monitor } from "../types/types";
 import MonitorForm from "./MonitorForm";
@@ -28,7 +28,7 @@ const DashboardHeader = () => {
       <div>
         <button
           onClick={() => {
-            addMonitor ? setAddMonitor(false) : setAddMonitor(true);
+            setAddMonitor((isOpen) => !isOpen);
           }}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold tracking-wider uppercase bg-coral hover:bg-coral-hover text-white transition-all shadow-lg shadow-[#FF5A5F]/15 active:scale-[0.98]"
         >

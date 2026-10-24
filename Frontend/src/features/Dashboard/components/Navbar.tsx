@@ -17,8 +17,6 @@ const Navbar = () => {
     { label: "Api Tester", path: "/api-tester" },
   ];
 
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
-
   async function handleLogout() {
     setLogoutError(null);
 
@@ -70,7 +68,7 @@ const Navbar = () => {
         <div className="relative">
           <button
             onClick={() => {
-              navDiv ? setNavDiv(false) : setNavDiv(true);
+              setNavDiv((isOpen) => !isOpen);
             }}
             className="flex items-center gap-3 p-1.5 pr-2.5 font-mono rounded-xl hover:bg-card-elevated border border-transparent hover:border-white/8 transition-all text-left focus:outline-none"
           >

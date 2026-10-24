@@ -11,6 +11,7 @@ import {
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const apiClient = axios.create({
   baseURL: baseUrl || "http://localhost:5000",
   withCredentials: true,
@@ -82,6 +83,8 @@ export function AuthContextProvider({ children }: AuthContextProviderProps) {
   }
 
   useEffect(() => {
+    // Fetching the current session on mount initializes auth state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshUser();
   }, []);
 
@@ -99,6 +102,7 @@ export function AuthContextProvider({ children }: AuthContextProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 

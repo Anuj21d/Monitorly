@@ -310,6 +310,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-function refreshUser() {
-  throw new Error("Function not implemented.");
-}

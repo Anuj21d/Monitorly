@@ -414,6 +414,9 @@ export function useApiRequest() {
   const [body, setBody] = useState<RequestBodyConfig>(DEFAULT_BODY);
   const [scripts, setScripts] = useState<RequestScripts>(DEFAULT_SCRIPTS);
   const [settings, setSettings] = useState<RequestSettings>(DEFAULT_SETTINGS);
+  const [requestMode, setRequestMode] = useState<"external" | "local">(
+    "external",
+  );
 
   const requestInProgressRef = useRef(false);
 
@@ -742,7 +745,6 @@ export function useApiRequest() {
     setIsLoading(true);
 
     const startedAt = performance.now();
-    const timestamp = new Date().toISOString();
     const controller = new AbortController();
 
     const timeoutMs = Math.max(1, settings.timeoutMs || 5000);
@@ -892,29 +894,63 @@ export function useApiRequest() {
       }
 
       // 6. Send a real HTTP request.
-      const response = await fetch(requestUrl, {
-        method,
-        headers: requestHeaders,
-        body: requestBody,
+
+      const response = await fetch("/api/proxy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: requestUrl,
+          method,
+          headers: Object.fromEntries(requestHeaders.entries()),
+          body:
+            method !== "GET" && method !== "HEAD"
+              ? requestBody instanceof FormData
+                ? (() => {
+                    throw new Error(
+                      "Form-data requests are not supported by the current proxy.",
+                    );
+                  })()
+                : requestBody
+              : undefined,
+        }),
         signal: controller.signal,
-        redirect: settings.followRedirects ? "follow" : "error",
       });
 
       // 7. Read the actual response body.
+
+      const proxyResult = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          proxyResult.message || proxyResult.error || "Proxy request failed.",
+        );
+      }
+
+      const targetStatus = proxyResult.status;
+      const targetStatusText = proxyResult.statusText || "Response received";
       const responseText =
-        method === "HEAD" || response.status === 204
+        method === "HEAD" || targetStatus === 204
           ? ""
-          : await response.text();
+          : typeof proxyResult.body === "string"
+            ? proxyResult.body
+            : JSON.stringify(proxyResult.body ?? "");
+
+      const responseHeaders = Object.entries(proxyResult.headers ?? {}).map(
+        ([key, value]) => ({
+          key,
+          value: Array.isArray(value) ? value.join(", ") : String(value),
+        }),
+      );
+
+      const contentType =
+        responseHeaders.find(
+          (header) => header.key.toLowerCase() === "content-type",
+        )?.value ?? "";
 
       const durationMs = Math.round(performance.now() - startedAt);
       const responseTimestamp = new Date().toISOString();
-
-      const responseHeaders = Array.from(
-        response.headers.entries(),
-        ([key, value]) => ({ key, value }),
-      );
-
-      const contentType = response.headers.get("content-type") || "";
 
       const testResults = [
         {
@@ -931,7 +967,7 @@ export function useApiRequest() {
 
       setResponse({
         status: response.status,
-        statusText: response.statusText || "Response received",
+        statusText: targetStatusText,
         durationMs,
         sizeBytes: new Blob([responseText]).size,
         timestamp: responseTimestamp,
@@ -950,7 +986,7 @@ export function useApiRequest() {
         method,
         url: requestUrl,
         status: response.status,
-        statusText: response.statusText || "Response received",
+        statusText: targetStatusText,
         durationMs,
         sizeBytes: new Blob([responseText]).size,
         timestamp: responseTimestamp,
@@ -1042,6 +1078,8 @@ export function useApiRequest() {
     isSaved,
     parentCollectionId,
     parentFolderId,
+    requestMode,
+    setRequestMode,
 
     // Core Request Configuration
     method,

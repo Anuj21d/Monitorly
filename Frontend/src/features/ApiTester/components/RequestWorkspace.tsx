@@ -1,9 +1,9 @@
-import React from 'react';
-import type { UseApiRequestReturn } from '../hooks/useApiRequest';
-import { RequestUrlBar } from './RequestUrlBar';
-import { RequestTabs } from './RequestTabs';
-import { ResponseViewer } from './ResponseViewer';
-import { SaveRequestDialog } from './SaveRequestDialog';
+import React from "react";
+import type { UseApiRequestReturn } from "../hooks/useApiRequest";
+import { RequestUrlBar } from "./RequestUrlBar";
+import { RequestTabs } from "./RequestTabs";
+import { ResponseViewer } from "./ResponseViewer";
+import { SaveRequestDialog } from "./SaveRequestDialog";
 
 interface RequestWorkspaceProps {
   requestHook: UseApiRequestReturn;
@@ -57,11 +57,43 @@ export const RequestWorkspace: React.FC<RequestWorkspaceProps> = ({
     collections,
     parentCollectionId,
     parentFolderId,
+    requestMode,
+    setRequestMode,
   } = requestHook;
 
   return (
     <div className="space-y-6 flex-1 min-w-0 font-sans">
-      {/* 1. Request URL Compound Bar */}
+      {/* Request execution mode */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-[#888888]">Request mode</span>
+
+        <div className="flex rounded-lg border border-white/10 bg-[#111111] p-1">
+          <button
+            type="button"
+            onClick={() => setRequestMode("external")}
+            className={`rounded-md px-3 py-2 text-xs transition-colors ${
+              requestMode === "external"
+                ? "bg-[#FF5A5F] text-white"
+                : "text-[#999999] hover:text-white"
+            }`}
+          >
+            External API
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setRequestMode("local")}
+            className={`rounded-md px-3 py-2 text-xs transition-colors ${
+              requestMode === "local"
+                ? "bg-[#FF5A5F] text-white"
+                : "text-[#999999] hover:text-white"
+            }`}
+          >
+            Local API
+          </button>
+        </div>
+      </div>
+
       <RequestUrlBar
         method={method}
         onMethodChange={setMethod}

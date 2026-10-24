@@ -1,7 +1,7 @@
 import React from 'react';
 import { type KeyValueRow } from '../types/apiTester.types';
 import { KeyValueTable } from './KeyValueTable';
-import { ShieldCheck, Plus } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 interface HeadersEditorProps {
   headers: KeyValueRow[];
@@ -19,7 +19,7 @@ export const HeadersEditor: React.FC<HeadersEditorProps> = ({
   onToggleHeader,
 }) => {
   // Quick Presets
-  const addPreset = (key: string, value: string, description: string) => {
+  const addPreset = (key: string, value: string) => {
     // Check if key already exists
     const existing = headers.find((h) => h.key.toLowerCase() === key.toLowerCase());
     if (existing) {
@@ -47,14 +47,14 @@ export const HeadersEditor: React.FC<HeadersEditorProps> = ({
           <span className="text-[#666666]">Presets:</span>
           <button
             type="button"
-            onClick={() => addPreset('Content-Type', 'application/json', 'JSON payload')}
+            onClick={() => addPreset('Content-Type', 'application/json')}
             className="px-2 py-0.5 rounded bg-[#181818] hover:bg-[#222222] text-[#F5F3EE] border border-white/[0.06] transition-colors"
           >
             + Content-Type
           </button>
           <button
             type="button"
-            onClick={() => addPreset('Authorization', 'Bearer <token>', 'Auth header')}
+            onClick={() => addPreset('Authorization', 'Bearer <token>')}
             className="px-2 py-0.5 rounded bg-[#181818] hover:bg-[#222222] text-[#F5F3EE] border border-white/[0.06] transition-colors"
           >
             + Authorization

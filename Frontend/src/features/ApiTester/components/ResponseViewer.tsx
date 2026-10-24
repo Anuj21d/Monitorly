@@ -12,14 +12,12 @@ import {
   Search,
   Sparkles,
   Cookie,
-  FileText,
   ShieldCheck,
   Terminal,
   Clock,
   Layers,
   CheckCircle2,
   XCircle,
-  HelpCircle,
   Info,
 } from 'lucide-react';
 
@@ -89,10 +87,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
   }, [response]);
 
   // Highlighted / Filtered body lines
-  const bodyLines = useMemo(() => {
-    if (!response?.body) return [];
-    return response.body.split('\n');
-  }, [response?.body]);
+  const bodyLines = response?.body ? response.body.split('\n') : [];
 
   return (
     <div className="flex flex-col bg-[#111111] rounded-2xl border border-white/[0.08] overflow-hidden font-sans min-h-[360px]">
@@ -140,9 +135,9 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
           >
             <Cookie className="w-3 h-3" />
             <span>Cookies</span>
-            {response && response.cookies.length > 0 && (
+            {(response?.cookies?.length ?? 0) > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[10px] font-mono text-[#CCCCCC]">
-                {response.cookies.length}
+                {response?.cookies?.length}
               </span>
             )}
           </button>
@@ -158,10 +153,10 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
           >
             <ShieldCheck className="w-3 h-3" />
             <span>Tests</span>
-            {response && response.testResults.length > 0 && (
+            {(response?.testResults?.length ?? 0) > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-[10px] font-mono text-emerald-400">
-                {response.testResults.filter((t) => t.status === 'passed').length}/
-                {response.testResults.length}
+                {response?.testResults?.filter((t) => t.status === 'passed').length}/
+                {response?.testResults?.length}
               </span>
             )}
           </button>
@@ -191,7 +186,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
             {/* Size */}
             <div className="flex items-center gap-1 text-[#CCCCCC] bg-[#161616] px-2.5 py-1 rounded-lg border border-white/[0.06]">
               <Layers className="w-3 h-3 text-[#888888]" />
-              <span>{formatBytes(response.sizeBytes)}</span>
+              <span>{formatBytes(response.sizeBytes ?? 0)}</span>
             </div>
 
             {/* Sandbox Tag */}
@@ -358,7 +353,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
                 </span>
               </div>
 
-              {response.cookies.length === 0 ? (
+              {(response.cookies?.length ?? 0) === 0 ? (
                 <div className="py-8 text-center text-xs text-[#666666] font-mono">
                   No response cookies returned by this endpoint.
                 </div>
@@ -371,7 +366,7 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
                     <div className="col-span-2 text-right">Flags</div>
                   </div>
                   <div className="divide-y divide-white/[0.04]">
-                    {response.cookies.map((c) => (
+                    {response.cookies?.map((c) => (
                       <div key={c.name} className="grid grid-cols-12 gap-2 px-3 py-2 items-center text-xs font-mono">
                         <div className="col-span-3 font-semibold text-[#CCCCCC]">{c.name}</div>
                         <div className="col-span-4 text-[#888888] truncate">{c.value}</div>
@@ -403,13 +398,13 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#888888]">
-                  Test suite execution summary ({response.testResults.filter((t) => t.status === 'passed').length}/
-                  {response.testResults.length} passed)
+                  Test suite execution summary ({(response.testResults ?? []).filter((t) => t.status === 'passed').length}/
+                  {(response.testResults ?? []).length} passed)
                 </span>
               </div>
 
               <div className="border border-white/[0.08] rounded-xl overflow-hidden divide-y divide-white/[0.04] bg-[#0d0d0d]">
-                {response.testResults.map((test, idx) => (
+                {(response.testResults ?? []).map((test, idx) => (
                   <div key={idx} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
                     <div className="flex items-center gap-2">
                       {test.status === 'passed' ? (

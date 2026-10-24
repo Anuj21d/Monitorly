@@ -12,7 +12,7 @@ import { QueryParamsEditor } from './QueryParamsEditor';
 import { AuthorizationEditor } from './AuthorizationEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { RequestBodyEditor } from './RequestBodyEditor';
-import { Code, Settings as SettingsIcon, Shield, Sliders, Layers, Sparkles } from 'lucide-react';
+import { Code, Settings as SettingsIcon, Sparkles } from 'lucide-react';
 
 interface RequestTabsProps {
   method: HttpMethod;
