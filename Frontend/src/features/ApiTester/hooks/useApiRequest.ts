@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type {
   HttpMethod,
   KeyValueRow,
@@ -496,7 +496,30 @@ export function useApiRequest() {
   // Collections & History
   const [collections, setCollections] =
     useState<ApiCollection[]>(INITIAL_COLLECTIONS);
-  const [history, setHistory] = useState<RequestHistoryItem[]>(INITIAL_HISTORY);
+  const [history, setHistory] = useState<RequestHistoryItem[]>(() => {
+    try {
+      const savedHistory = sessionStorage.getItem("monitorly-request-history");
+
+      if (savedHistory) {
+        return JSON.parse(savedHistory) as RequestHistoryItem[];
+      }
+    } catch (error) {
+      console.error("Failed to load request history:", error);
+    }
+
+    return INITIAL_HISTORY;
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "monitorly-request-history",
+        JSON.stringify(history),
+      );
+    } catch (error) {
+      console.error("Failed to save request history:", error);
+    }
+  }, [history]);
 
   // Derived Full URL with query parameters
   const fullUrl = useMemo(() => {
@@ -895,26 +918,33 @@ export function useApiRequest() {
 
       // 6. Send a real HTTP request.
 
-      const response = await fetch("/api/proxy", {
+      const requestPayload = {
+        url: requestUrl,
+        method,
+        headers: Object.fromEntries(requestHeaders.entries()),
+        body:
+          method !== "GET" && method !== "HEAD"
+            ? requestBody instanceof FormData
+              ? (() => {
+                  throw new Error(
+                    "Form-data requests are not supported by the current proxy.",
+                  );
+                })()
+              : requestBody
+            : undefined,
+      };
+
+      const requestEndpoint =
+        requestMode === "local"
+          ? "http://127.0.0.1:42831/request"
+          : "http://127.0.0.1:5000/api/proxy";
+
+      const response = await fetch(requestEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          url: requestUrl,
-          method,
-          headers: Object.fromEntries(requestHeaders.entries()),
-          body:
-            method !== "GET" && method !== "HEAD"
-              ? requestBody instanceof FormData
-                ? (() => {
-                    throw new Error(
-                      "Form-data requests are not supported by the current proxy.",
-                    );
-                  })()
-                : requestBody
-              : undefined,
-        }),
+        body: JSON.stringify(requestPayload),
         signal: controller.signal,
       });
 
@@ -1065,6 +1095,7 @@ export function useApiRequest() {
     settings,
     requestId,
     requestName,
+    requestMode,
   ]);
 
   return {

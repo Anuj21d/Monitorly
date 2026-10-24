@@ -4,6 +4,30 @@ import pool from "../config/database.js";
 import type { AuthUser } from "../types/auth.types.js";
 
 /**
+ * Read the JWT from the httpOnly "token" cookie (browser) or, as a fallback,
+ * from an "Authorization: Bearer <token>" header (API Tester, curl, Postman).
+ */
+function getTokenFromRequest(req: Request): string | undefined {
+  const cookieToken = req.cookies?.token;
+
+  if (typeof cookieToken === "string" && cookieToken) {
+    return cookieToken;
+  }
+
+  const authorization = req.headers.authorization;
+
+  if (typeof authorization === "string") {
+    const [scheme, value] = authorization.trim().split(/\s+/);
+
+    if (scheme?.toLowerCase() === "bearer" && value) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * @name authUser
  * @description Verify the JWT and reject revoked tokens
  * @access Middleware
@@ -13,9 +37,9 @@ export async function authUser(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const token = req.cookies?.token;
+  const token = getTokenFromRequest(req);
 
-  if (typeof token !== "string" || !token) {
+  if (!token) {
     res.status(401).json({
       message: "Authentication required",
     });
