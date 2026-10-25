@@ -1,8 +1,22 @@
-export type MonitorStatus = "healthy" | "degraded" | "down" | "paused";
 
-export type MonitorMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export type MonitorStatus =
+  | "healthy"
+  | "degraded"
+  | "down"
+  | "paused";
 
-export type MonitorAuthType = "none" | "bearer" | "apiKey" | "basic";
+export type MonitorMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE";
+
+export type MonitorAuthType =
+  | "none"
+  | "bearer"
+  | "apiKey"
+  | "basic";
 
 export type Monitor = {
   id: string;
@@ -13,7 +27,7 @@ export type Monitor = {
   responseTime: number | null;
   uptime: number;
   frequency: number;
-  lastChecked: string;
+  lastChecked: string | null;
   timeout?: number;
 
   // Request configuration
@@ -28,7 +42,7 @@ export type Monitor = {
     password?: string;
     apiKeyLocation?: "header" | "query";
   };
-  body?: string;
+  body?: string | null;
 
   // Expected response
   expectedStatus?: number;

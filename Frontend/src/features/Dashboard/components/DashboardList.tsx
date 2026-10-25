@@ -4,6 +4,12 @@ import { Activity } from "lucide-react";
 import type { Monitor } from "../types/types";
 import MonitorForm from "../components/MonitorForm";
 import DeleteButton from "./DeleteButton"; // Make sure this accepts isOpen, monitorName, onClose, onConfirm props as defined previously
+import {
+  deleteMonitor,
+  pauseMonitor,
+  resumeMonitor,
+  updateMonitor,
+} from "../services/monitorService";
 
 const ActionIcon = () => (
   <svg
@@ -101,41 +107,68 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
   const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null);
   const [monitorToDelete, setMonitorToDelete] = useState<Monitor | null>(null);
 
-  const handleUpdateMonitor = (updatedMonitor: Monitor) => {
-    setMonitors((currentMonitors) =>
-      currentMonitors.map((monitor) =>
-        monitor.id === updatedMonitor.id ? updatedMonitor : monitor,
-      ),
-    );
-    setEditingMonitor(null);
+  const handleUpdateMonitor = async (updatedMonitor: Monitor) => {
+    try {
+      await updateMonitor(updatedMonitor.id, updatedMonitor);
+
+      setMonitors((currentMonitors) =>
+        currentMonitors.map((monitor) =>
+          monitor.id === updatedMonitor.id ? updatedMonitor : monitor,
+        ),
+      );
+
+      setEditingMonitor(null);
+    } catch (error) {
+      console.error("Failed to update monitor:", error);
+      window.alert("Unable to save monitor changes. Please try again.");
+    }
   };
 
-  const handleTogglePause = (id: string) => {
-    setMonitors((currentMonitors) =>
-      currentMonitors.map((monitor) =>
-        monitor.id === id
-          ? {
-              ...monitor,
-              status: monitor.status === "paused" ? "healthy" : "paused",
-            }
-          : monitor,
-      ),
-    );
+  const handleTogglePause = async (id: string) => {
+    const monitor = monitors.find((item) => item.id === id);
+
+    if (!monitor) return;
+
+    const wasPaused = monitor.status === "paused";
+
+    try {
+      if (wasPaused) {
+        await resumeMonitor(id);
+      } else {
+        await pauseMonitor(id);
+      }
+
+      setMonitors((currentMonitors) =>
+        currentMonitors.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                status: wasPaused ? "healthy" : "paused",
+              }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to change monitor status:", error);
+      window.alert("Unable to change monitor status. Please try again.");
+    }
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!monitorToDelete) return;
 
-    // 1. Remove the monitor from local state
-    // (In a real app, you'd also await your API call here)
-    setMonitors((currentMonitors) =>
-      currentMonitors.filter((m) => m.id !== monitorToDelete.id),
-    );
+    try {
+      await deleteMonitor(monitorToDelete.id);
 
-    console.log("Deleted:", monitorToDelete.name);
+      setMonitors((currentMonitors) =>
+        currentMonitors.filter((monitor) => monitor.id !== monitorToDelete.id),
+      );
 
-    // 2. Close the modal when done
-    setMonitorToDelete(null);
+      setMonitorToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete monitor:", error);
+      window.alert("Unable to delete monitor. Please try again.");
+    }
   };
 
   return (
@@ -171,60 +204,108 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
             </div>
           ) : (
             <>
-          {/* Desktop View */}
-          <div className="hidden md:block overflow-visible">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-white/[0.08] text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-[#666666]">
-                  <th className="py-4 pl-6">Service</th>
-                  <th className="py-4 px-4">Status</th>
-                  <th className="py-4 px-4 text-right">Response Time</th>
-                  <th className="py-4 px-4 text-right">Uptime</th>
-                  <th className="py-4 px-4 text-right">Last Check</th>
-                  <th className="py-4 pr-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.05]">
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-visible">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/[0.08] text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-[#666666]">
+                      <th className="py-4 pl-6">Service</th>
+                      <th className="py-4 px-4">Status</th>
+                      <th className="py-4 px-4 text-right">Response Time</th>
+                      <th className="py-4 px-4 text-right">Uptime</th>
+                      <th className="py-4 px-4 text-right">Last Check</th>
+                      <th className="py-4 pr-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.05]">
+                    {monitors.map((monitor, index) => {
+                      const isBottom = index >= monitors.length - 3;
+                      return (
+                        <tr
+                          key={monitor.id}
+                          className="hover:bg-[#151515] transition-colors cursor-pointer group relative"
+                        >
+                          <td className="py-4 pl-6 font-medium">
+                            <div className="text-sm font-bold text-[#F5F3EE] group-hover:text-white transition-colors">
+                              {monitor.name}
+                            </div>
+                            <div className="text-[11px] font-mono text-[#666666] truncate max-w-sm mt-0.5">
+                              {monitor.url}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                              <span
+                                className={`w-2 h-2 rounded-full bg-[#10B981] ${monitor.status === "paused" ? "hidden" : "inline"}`}
+                              />
+                              <span
+                                className={`${monitor.status === "paused" ? "text-text-dark-muted " : "text-healthy"} font-mono uppercase`}
+                              >
+                                {monitor.status}
+                              </span>
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono font-semibold">
+                            <span className="text-[#F5F3EE]">
+                              {monitor.responseTime ?? "—"}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono text-[#888888]">
+                            {monitor.uptime}
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono text-[#666666]">
+                            {monitor.lastChecked}
+                          </td>
+                          <td className="py-4 pr-6 text-right relative">
+                            <div className="relative inline-block group/action">
+                              <button
+                                type="button"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1.5 rounded-lg text-[#888888] hover:text-[#F5F3EE] hover:bg-white/[0.08] transition-colors focus:outline-none"
+                                title="Monitor Actions"
+                              >
+                                <ActionIcon />
+                              </button>
+
+                              {/* Passed the onDelete prop */}
+                              <ActionDropdown
+                                isBottom={isBottom}
+                                monitor={monitor}
+                                onEdit={setEditingMonitor}
+                                onTogglePause={handleTogglePause}
+                                onDelete={setMonitorToDelete}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden divide-y divide-white/[0.06]">
                 {monitors.map((monitor, index) => {
                   const isBottom = index >= monitors.length - 3;
                   return (
-                    <tr
+                    <div
                       key={monitor.id}
-                      className="hover:bg-[#151515] transition-colors cursor-pointer group relative"
+                      className="p-5 space-y-3 cursor-pointer hover:bg-[#151515] transition-colors relative"
                     >
-                      <td className="py-4 pl-6 font-medium">
-                        <div className="text-sm font-bold text-[#F5F3EE] group-hover:text-white transition-colors">
-                          {monitor.name}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-bold text-sm text-[#F5F3EE]">
+                            {monitor.name}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1 text-xs">
+                            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                            <span className="text-[#10B981]">
+                              {monitor.status}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-[11px] font-mono text-[#666666] truncate max-w-sm mt-0.5">
-                          {monitor.url}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="inline-flex items-center gap-1.5 font-medium">
-                          <span
-                            className={`w-2 h-2 rounded-full bg-[#10B981] ${monitor.status === "paused" ? "hidden" : "inline"}`}
-                          />
-                          <span
-                            className={`${monitor.status === "paused" ? "text-text-dark-muted " : "text-healthy"} font-mono uppercase`}
-                          >
-                            {monitor.status}
-                          </span>
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono font-semibold">
-                        <span className="text-[#F5F3EE]">
-                          {monitor.responseTime ?? "—"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono text-[#888888]">
-                        {monitor.uptime}
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono text-[#666666]">
-                        {monitor.lastChecked}
-                      </td>
-                      <td className="py-4 pr-6 text-right relative">
-                        <div className="relative inline-block group/action">
+                        <div className="relative group/action">
                           <button
                             type="button"
                             onClick={(e) => e.stopPropagation()}
@@ -234,7 +315,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                             <ActionIcon />
                           </button>
 
-                          {/* Passed the onDelete prop */}
+                          {/* Passed the onDelete prop here too */}
                           <ActionDropdown
                             isBottom={isBottom}
                             monitor={monitor}
@@ -243,72 +324,28 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                             onDelete={setMonitorToDelete}
                           />
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-mono pt-1">
+                        <div>
+                          <span className="text-[#666666]">Response: </span>
+                          <span className="font-semibold text-[#F5F3EE]">
+                            {monitor.responseTime ?? "—"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#666666]">Uptime: </span>
+                          <span className="text-[#888888]">
+                            {monitor.uptime}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-[11px] font-mono text-[#666666]">
+                        Last checked {monitor.lastChecked}
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile View */}
-          <div className="md:hidden divide-y divide-white/[0.06]">
-            {monitors.map((monitor, index) => {
-              const isBottom = index >= monitors.length - 3;
-              return (
-                <div
-                  key={monitor.id}
-                  className="p-5 space-y-3 cursor-pointer hover:bg-[#151515] transition-colors relative"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="font-bold text-sm text-[#F5F3EE]">
-                        {monitor.name}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs">
-                        <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                        <span className="text-[#10B981]">{monitor.status}</span>
-                      </div>
-                    </div>
-                    <div className="relative group/action">
-                      <button
-                        type="button"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 rounded-lg text-[#888888] hover:text-[#F5F3EE] hover:bg-white/[0.08] transition-colors focus:outline-none"
-                        title="Monitor Actions"
-                      >
-                        <ActionIcon />
-                      </button>
-
-                      {/* Passed the onDelete prop here too */}
-                      <ActionDropdown
-                        isBottom={isBottom}
-                        monitor={monitor}
-                        onEdit={setEditingMonitor}
-                        onTogglePause={handleTogglePause}
-                        onDelete={setMonitorToDelete}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-mono pt-1">
-                    <div>
-                      <span className="text-[#666666]">Response: </span>
-                      <span className="font-semibold text-[#F5F3EE]">
-                        {monitor.responseTime ?? "—"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#666666]">Uptime: </span>
-                      <span className="text-[#888888]">{monitor.uptime}</span>
-                    </div>
-                  </div>
-                  <div className="text-[11px] font-mono text-[#666666]">
-                    Last checked {monitor.lastChecked}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              </div>
             </>
           )}
         </div>

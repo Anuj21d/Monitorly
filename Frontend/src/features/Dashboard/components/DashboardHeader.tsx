@@ -1,21 +1,33 @@
-
 import { CirclePlus } from "lucide-react";
 import { useState } from "react";
 import type { Monitor } from "../types/types";
 import MonitorForm from "./MonitorForm";
+import { createMonitor } from "../services/monitorService";
 
 type DashboardHeaderProps = {
   onCreateMonitor: (monitor: Monitor) => void;
 };
 
-const DashboardHeader = ({
-  onCreateMonitor,
-}: DashboardHeaderProps) => {
+const DashboardHeader = ({ onCreateMonitor }: DashboardHeaderProps) => {
   const [addMonitor, setAddMonitor] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateMonitor = (newMonitor: Monitor) => {
-    onCreateMonitor(newMonitor);
-    setAddMonitor(false);
+  const handleCreateMonitor = async (newMonitor: Monitor) => {
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      const savedMonitor = await createMonitor(newMonitor);
+
+      onCreateMonitor(savedMonitor);
+      setAddMonitor(false);
+    } catch (err) {
+      console.error("Failed to create monitor:", err);
+      setError("Unable to create monitor. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -36,17 +48,33 @@ const DashboardHeader = ({
 
       <div>
         <button
-          onClick={() => setAddMonitor((isOpen) => !isOpen)}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold tracking-wider uppercase bg-coral hover:bg-coral-hover text-white transition-all shadow-lg shadow-[#FF5A5F]/15 active:scale-[0.98]"
+          type="button"
+          disabled={isSaving}
+          onClick={() => {
+            setError(null);
+            setAddMonitor((isOpen) => !isOpen);
+          }}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold tracking-wider uppercase bg-coral hover:bg-coral-hover text-white transition-all shadow-lg shadow-[#FF5A5F]/15 active:scale-[0.98] disabled:opacity-50"
         >
           <CirclePlus size={16} strokeWidth={1.5} />
-          <span>Add Monitor</span>
+          <span>{isSaving ? "Saving..." : "Add Monitor"}</span>
         </button>
+
+        {error && (
+          <p role="alert" className="mt-2 text-sm text-red-400">
+            {error}
+          </p>
+        )}
       </div>
 
       {addMonitor && (
         <MonitorForm
-          onClose={() => setAddMonitor(false)}
+          onClose={() => {
+            if (!isSaving) {
+              setAddMonitor(false);
+              setError(null);
+            }
+          }}
           onSubmit={handleCreateMonitor}
         />
       )}
