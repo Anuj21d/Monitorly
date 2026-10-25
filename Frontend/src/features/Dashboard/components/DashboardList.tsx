@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { mockMonitors } from "../data/mockMonitors";
+import type { Dispatch, SetStateAction } from "react";
+import { Activity } from "lucide-react";
 import type { Monitor } from "../types/types";
 import MonitorForm from "../components/MonitorForm";
 import DeleteButton from "./DeleteButton"; // Make sure this accepts isOpen, monitorName, onClose, onConfirm props as defined previously
@@ -91,8 +92,12 @@ const ActionDropdown = ({
   </div>
 );
 
-const DashboardList = () => {
-  const [monitors, setMonitors] = useState<Monitor[]>(mockMonitors);
+type DashboardListProps = {
+  monitors: Monitor[];
+  setMonitors: Dispatch<SetStateAction<Monitor[]>>;
+};
+
+const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
   const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null);
   const [monitorToDelete, setMonitorToDelete] = useState<Monitor | null>(null);
 
@@ -146,6 +151,26 @@ const DashboardList = () => {
         </div>
 
         <div className="bg-[#111111] rounded-[24px] border border-white/[0.08] overflow-visible shadow-lg">
+          {monitors.length === 0 ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center sm:min-h-[320px]">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#FF5A5F]/20 bg-[#FF5A5F]/[0.08] text-[#FF777B] shadow-[0_0_32px_rgba(255,90,95,0.08)]">
+                <Activity size={24} strokeWidth={1.6} aria-hidden="true" />
+              </div>
+              <h3 className="font-display text-lg font-bold text-[#F5F3EE] sm:text-xl">
+                No API monitors yet
+              </h3>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-[#888888]">
+                Add an endpoint to start tracking its uptime, response time, and
+                availability from this dashboard.
+              </p>
+              <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-xs font-semibold text-[#B8B6B1]">
+                <span className="text-[#FF777B]">↑</span>
+                Use <span className="text-[#F5F3EE]">Add Monitor</span> above to
+                get started
+              </div>
+            </div>
+          ) : (
+            <>
           {/* Desktop View */}
           <div className="hidden md:block overflow-visible">
             <table className="w-full text-left text-xs">
@@ -284,6 +309,8 @@ const DashboardList = () => {
               );
             })}
           </div>
+            </>
+          )}
         </div>
       </section>
 
