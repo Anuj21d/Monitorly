@@ -510,11 +510,94 @@ export function useApiRequest() {
     return INITIAL_HISTORY;
   });
 
+  const SENSITIVE_FIELD_PATTERN =
+    /authorization|token|password|passwd|secret|api[-_]?key|access[-_]?key|client[-_]?secret|cookie/i;
+
+  const redactSensitiveRows = (rows: KeyValueRow[]): KeyValueRow[] =>
+    rows.map((row) =>
+      SENSITIVE_FIELD_PATTERN.test(row.key) ? { ...row, value: "" } : row,
+    );
+
+  const redactSensitiveText = (text: string): string => {
+    try {
+      const parsed: unknown = JSON.parse(text);
+
+      const redact = (value: unknown): unknown => {
+        if (Array.isArray(value)) {
+          return value.map(redact);
+        }
+
+        if (value !== null && typeof value === "object") {
+          return Object.fromEntries(
+            Object.entries(value).map(([key, entry]) => [
+              key,
+              SENSITIVE_FIELD_PATTERN.test(key) ? "[REDACTED]" : redact(entry),
+            ]),
+          );
+        }
+
+        return value;
+      };
+
+      return JSON.stringify(redact(parsed));
+    } catch {
+      // Raw text may contain secrets that cannot be safely identified.
+      return "[Not saved in history: non-JSON body]";
+    }
+  };
+
   useEffect(() => {
     try {
+
+      const safeHistory = history.map((item) => {
+        const auth = item.requestConfig.auth;
+
+        const safeAuth =
+          auth.type === "bearer"
+            ? { ...auth, bearer: { ...auth.bearer, token: "" } }
+            : auth.type === "basic"
+              ? {
+                  ...auth,
+                  basic: {
+                    ...auth.basic,
+                    username: "",
+                    password: "",
+                  },
+                }
+              : auth.type === "apikey"
+                ? {
+                    ...auth,
+                    apiKey: {
+                      ...auth.apiKey,
+                      key: "",
+                      value: "",
+                    },
+                  }
+                : auth;
+
+        return {
+          ...item,
+          requestConfig: {
+            ...item.requestConfig,
+            auth: safeAuth,
+            headers: redactSensitiveRows(item.requestConfig.headers),
+            params: redactSensitiveRows(item.requestConfig.params),
+            body: {
+              ...item.requestConfig.body,
+              json: redactSensitiveText(item.requestConfig.body.json),
+              raw: redactSensitiveText(item.requestConfig.body.raw),
+              urlencoded: redactSensitiveRows(
+                item.requestConfig.body.urlencoded,
+              ),
+              formdata: redactSensitiveRows(item.requestConfig.body.formdata),
+            },
+          },
+        };
+      });
+
       sessionStorage.setItem(
         "monitorly-request-history",
-        JSON.stringify(history),
+        JSON.stringify(safeHistory),
       );
     } catch (error) {
       console.error("Failed to save request history:", error);
@@ -761,342 +844,401 @@ export function useApiRequest() {
 
   // Send Simulated Request: Emits a structured local client preview
 
-  const executeSimulatedRequest = useCallback(async () => {
-    if (requestInProgressRef.current) return;
+  const executeSimulatedRequest = useCallback(
+    async (config?: ApiRequestConfig) => {
+      if (requestInProgressRef.current) return;
 
-    requestInProgressRef.current = true;
-    setIsLoading(true);
+      requestInProgressRef.current = true;
+      setIsLoading(true);
 
-    const startedAt = performance.now();
-    const controller = new AbortController();
+      const startedAt = performance.now();
+      const controller = new AbortController();
 
-    const timeoutMs = Math.max(1, settings.timeoutMs || 5000);
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const activeMethod = config?.method ?? method;
+      const activeBaseUrl = config?.url ?? rawBaseUrl;
+      const activeParams = config?.params ?? params;
+      const activeHeaders = config?.headers ?? headers;
+      const activeAuth = config?.auth ?? auth;
+      const activeBody = config?.body ?? body;
+      const activeSettings = config?.settings ?? settings;
+      const activeRequestId = config?.id ?? requestId;
+      const activeRequestName = config?.name ?? requestName;
+      const activeScripts = config?.scripts ?? scripts;
 
-    let requestUrl = fullUrl;
+      let requestUrl = applyParamsToUrl(
+        activeBaseUrl.split("?")[0],
+        activeParams,
+      );
 
-    try {
-      // 1. Validate URL.
-      const validation = validateUrl(requestUrl);
+      const timeoutMs = Math.max(1, activeSettings.timeoutMs || 5000);
 
-      if (!validation.isValid) {
-        throw new Error(validation.error || "Invalid URL.");
-      }
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const parsedUrl = new URL(requestUrl);
+      try {
+        // 1. Validate URL.
+        const validation = validateUrl(requestUrl);
 
-      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-        throw new Error("Only HTTP and HTTPS URLs are supported.");
-      }
-
-      // 2. Validate the JSON body before sending.
-      if (body.type === "json") {
-        if (!body.json.trim()) {
-          throw new Error("JSON body cannot be empty.");
+        if (!validation.isValid) {
+          throw new Error(validation.error || "Invalid URL.");
         }
 
-        JSON.parse(body.json);
-      }
+        const parsedUrl = new URL(requestUrl);
 
-      // 3. Prepare headers.
-      const requestHeaders = new Headers();
-
-      headers.forEach((header) => {
-        if (header.enabled && header.key.trim()) {
-          requestHeaders.set(header.key.trim(), header.value);
-        }
-      });
-
-      // 4. Apply authentication.
-      if (auth.type === "bearer") {
-        if (!auth.bearer.token.trim()) {
-          throw new Error("Bearer token cannot be empty.");
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          throw new Error("Only HTTP and HTTPS URLs are supported.");
         }
 
-        requestHeaders.set("Authorization", `Bearer ${auth.bearer.token}`);
-      }
+        // 2. Validate the JSON body before sending.
+        if (activeBody.type === "json") {
+          if (!activeBody.json.trim()) {
+            throw new Error("JSON body cannot be empty.");
+          }
 
-      if (auth.type === "basic") {
-        const credentials = `${auth.basic.username}:${auth.basic.password}`;
-
-        const bytes = new TextEncoder().encode(credentials);
-        const binary = Array.from(bytes, (byte) =>
-          String.fromCharCode(byte),
-        ).join("");
-
-        requestHeaders.set("Authorization", `Basic ${btoa(binary)}`);
-      }
-
-      if (auth.type === "apikey") {
-        const { key, value, addTo } = auth.apiKey;
-
-        if (!key.trim()) {
-          throw new Error("API key name cannot be empty.");
+          JSON.parse(activeBody.json);
         }
 
-        if (addTo === "header") {
-          requestHeaders.set(key, value);
-        } else {
-          parsedUrl.searchParams.set(key, value);
+        // 3. Prepare headers.
+        const requestHeaders = new Headers();
+
+        activeHeaders.forEach((header) => {
+          if (header.enabled && header.key.trim()) {
+            requestHeaders.set(header.key.trim(), header.value);
+          }
+        });
+
+        // 4. Apply authentication.
+        if (activeAuth.type === "bearer") {
+          if (!activeAuth.bearer.token.trim()) {
+            throw new Error("Bearer token cannot be empty.");
+          }
+
+          requestHeaders.set(
+            "Authorization",
+            `Bearer ${activeAuth.bearer.token}`,
+          );
         }
-      }
 
-      requestUrl = parsedUrl.toString();
+        if (activeAuth.type === "basic") {
+          const credentials = `${activeAuth.basic.username}:${activeAuth.basic.password}`;
 
-      // 5. Prepare the request body.
-      let requestBody: BodyInit | undefined;
+          const bytes = new TextEncoder().encode(credentials);
 
-      if (method !== "GET" && method !== "HEAD") {
-        switch (body.type) {
-          case "none":
-            break;
+          const binary = Array.from(bytes, (byte) =>
+            String.fromCharCode(byte),
+          ).join("");
 
-          case "json":
-            requestHeaders.set("Content-Type", "application/json");
-            requestBody = body.json;
-            break;
+          requestHeaders.set("Authorization", `Basic ${btoa(binary)}`);
+        }
 
-          case "raw": {
-            const rawContentTypes: Record<string, string> = {
-              text: "text/plain",
-              javascript: "text/javascript",
-              html: "text/html",
-              xml: "application/xml",
-            };
+        if (activeAuth.type === "apikey") {
+          const { key, value, addTo } = activeAuth.apiKey;
 
-            if (!requestHeaders.has("Content-Type")) {
-              requestHeaders.set(
-                "Content-Type",
-                rawContentTypes[body.rawFormat],
-              );
+          if (!key.trim()) {
+            throw new Error("API key name cannot be empty.");
+          }
+
+          if (addTo === "header") {
+            requestHeaders.set(key, value);
+          } else {
+            parsedUrl.searchParams.set(key, value);
+          }
+        }
+
+        requestUrl = parsedUrl.toString();
+
+        // 5. Prepare the request body.
+        let requestBody: BodyInit | undefined;
+
+        if (activeMethod !== "GET" && activeMethod !== "HEAD") {
+          switch (activeBody.type) {
+            case "none":
+              break;
+
+            case "json":
+              requestHeaders.set("Content-Type", "application/json");
+              requestBody = activeBody.json;
+              break;
+
+            case "raw": {
+              const rawContentTypes: Record<string, string> = {
+                text: "text/plain",
+                javascript: "text/javascript",
+                html: "text/html",
+                xml: "application/xml",
+              };
+
+              if (!requestHeaders.has("Content-Type")) {
+                requestHeaders.set(
+                  "Content-Type",
+                  rawContentTypes[activeBody.rawFormat],
+                );
+              }
+
+              requestBody = activeBody.raw;
+              break;
             }
 
-            requestBody = body.raw;
-            break;
+            case "urlencoded": {
+              const form = new URLSearchParams();
+
+              activeBody.urlencoded.forEach((item) => {
+                if (item.enabled && item.key.trim()) {
+                  form.append(item.key, item.value);
+                }
+              });
+
+              requestHeaders.set(
+                "Content-Type",
+                "application/x-www-form-urlencoded;charset=UTF-8",
+              );
+
+              requestBody = form.toString();
+              break;
+            }
+
+            case "formdata": {
+              const form = new FormData();
+
+              activeBody.formdata.forEach((item) => {
+                if (item.enabled && item.key.trim()) {
+                  form.append(item.key, item.value);
+                }
+              });
+
+              // Let the browser generate the multipart boundary.
+              requestHeaders.delete("Content-Type");
+              requestBody = form;
+              break;
+            }
+
+            case "binary":
+              throw new Error(
+                "Binary requests need an actual File or Blob. " +
+                  "The current body configuration stores only file metadata.",
+              );
           }
-
-          case "urlencoded": {
-            const form = new URLSearchParams();
-
-            body.urlencoded.forEach((item) => {
-              if (item.enabled && item.key.trim()) {
-                form.append(item.key, item.value);
-              }
-            });
-
-            requestHeaders.set(
-              "Content-Type",
-              "application/x-www-form-urlencoded;charset=UTF-8",
-            );
-
-            requestBody = form.toString();
-            break;
-          }
-
-          case "formdata": {
-            const form = new FormData();
-
-            body.formdata.forEach((item) => {
-              if (item.enabled && item.key.trim()) {
-                form.append(item.key, item.value);
-              }
-            });
-
-            // Let the browser generate the multipart boundary.
-            requestHeaders.delete("Content-Type");
-            requestBody = form;
-            break;
-          }
-
-          case "binary":
-            throw new Error(
-              "Binary requests need an actual File or Blob. " +
-                "The current body configuration stores only file metadata.",
-            );
         }
-      }
 
-      // 6. Send a real HTTP request.
+        // 6. Send a real HTTP request.
+        const requestPayload = {
+          url: requestUrl,
+          method: activeMethod,
+          headers: Object.fromEntries(requestHeaders.entries()),
+          body:
+            activeMethod !== "GET" && activeMethod !== "HEAD"
+              ? requestBody instanceof FormData
+                ? (() => {
+                    throw new Error(
+                      "Form-data requests are not supported by the current proxy.",
+                    );
+                  })()
+                : requestBody
+              : undefined,
+        };
 
-      const requestPayload = {
-        url: requestUrl,
-        method,
-        headers: Object.fromEntries(requestHeaders.entries()),
-        body:
-          method !== "GET" && method !== "HEAD"
-            ? requestBody instanceof FormData
-              ? (() => {
-                  throw new Error(
-                    "Form-data requests are not supported by the current proxy.",
-                  );
-                })()
-              : requestBody
-            : undefined,
-      };
+        const requestEndpoint =
+          requestMode === "local"
+            ? "http://127.0.0.1:42831/request"
+            : "http://127.0.0.1:5000/api/proxy";
 
-      const requestEndpoint =
-        requestMode === "local"
-          ? "http://127.0.0.1:42831/request"
-          : "http://127.0.0.1:5000/api/proxy";
+        const response = await fetch(requestEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestPayload),
+          signal: controller.signal,
+        });
 
-      const response = await fetch(requestEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestPayload),
-        signal: controller.signal,
-      });
+        // 7. Read the actual response body.
+        const proxyResult = await response.json();
 
-      // 7. Read the actual response body.
+        if (!response.ok) {
+          throw new Error(
+            proxyResult.message || proxyResult.error || "Proxy request failed.",
+          );
+        }
 
-      const proxyResult = await response.json();
+        const targetStatus = proxyResult.status;
+        const targetStatusText = proxyResult.statusText || "Response received";
 
-      if (!response.ok) {
-        throw new Error(
-          proxyResult.message || proxyResult.error || "Proxy request failed.",
+        const responseText =
+          activeMethod === "HEAD" || targetStatus === 204
+            ? ""
+            : typeof proxyResult.body === "string"
+              ? proxyResult.body
+              : JSON.stringify(proxyResult.body ?? "");
+
+        const responseHeaders = Object.entries(proxyResult.headers ?? {}).map(
+          ([key, value]) => ({
+            key,
+            value: Array.isArray(value) ? value.join(", ") : String(value),
+          }),
         );
-      }
 
-      const targetStatus = proxyResult.status;
-      const targetStatusText = proxyResult.statusText || "Response received";
-      const responseText =
-        method === "HEAD" || targetStatus === 204
-          ? ""
-          : typeof proxyResult.body === "string"
-            ? proxyResult.body
-            : JSON.stringify(proxyResult.body ?? "");
+        const contentType =
+          responseHeaders.find(
+            (header) => header.key.toLowerCase() === "content-type",
+          )?.value ?? "";
 
-      const responseHeaders = Object.entries(proxyResult.headers ?? {}).map(
-        ([key, value]) => ({
-          key,
-          value: Array.isArray(value) ? value.join(", ") : String(value),
-        }),
-      );
+        const durationMs = Math.round(performance.now() - startedAt);
 
-      const contentType =
-        responseHeaders.find(
-          (header) => header.key.toLowerCase() === "content-type",
-        )?.value ?? "";
+        const responseTimestamp = new Date().toISOString();
 
-      const durationMs = Math.round(performance.now() - startedAt);
-      const responseTimestamp = new Date().toISOString();
-
-      const testResults = [
-        {
-          name: `HTTP status: ${response.status}`,
-          status: response.ok ? ("passed" as const) : ("failed" as const),
-          message: response.statusText || "HTTP response received",
-        },
-        {
-          name: "Response time under 250ms",
-          status: durationMs < 250 ? ("passed" as const) : ("failed" as const),
-          message: `Actual: ${durationMs}ms`,
-        },
-      ];
-
-      setResponse({
-        status: response.status,
-        statusText: targetStatusText,
-        durationMs,
-        sizeBytes: new Blob([responseText]).size,
-        timestamp: responseTimestamp,
-        headers: responseHeaders,
-        cookies: [],
-        body: responseText,
-        contentType,
-        isSimulatedPreview: false,
-        testResults,
-      });
-
-      // 8. Record actual HTTP results, including 4xx and 5xx.
-      const historyItem: RequestHistoryItem = {
-        id: `hist-${Date.now()}`,
-        name: requestName,
-        method,
-        url: requestUrl,
-        status: response.status,
-        statusText: targetStatusText,
-        durationMs,
-        sizeBytes: new Blob([responseText]).size,
-        timestamp: responseTimestamp,
-        requestConfig: {
-          id: requestId,
-          name: requestName,
-          method,
-          url: fullUrl,
-          params,
-          headers,
-          auth,
-          body,
-          scripts,
-          settings,
-        },
-      };
-
-      setHistory((previous) => [historyItem, ...previous.slice(0, 24)]);
-    } catch (caughtError: unknown) {
-      const durationMs = Math.round(performance.now() - startedAt);
-
-      const message =
-        caughtError instanceof Error
-          ? caughtError.name === "AbortError"
-            ? `Request timed out after ${timeoutMs}ms.`
-            : caughtError.message
-          : "An unexpected network error occurred.";
-
-      const errorBody = JSON.stringify(
-        {
-          error:
-            caughtError instanceof Error && caughtError.name === "AbortError"
-              ? "TimeoutError"
-              : "RequestError",
-          message,
-        },
-        null,
-        2,
-      );
-
-      setResponse({
-        status: 0,
-        statusText:
-          caughtError instanceof Error && caughtError.name === "AbortError"
-            ? "Request Timeout"
-            : "Network Error",
-        durationMs,
-        sizeBytes: new Blob([errorBody]).size,
-        timestamp: new Date().toISOString(),
-        headers: [],
-        cookies: [],
-        body: errorBody,
-        contentType: "application/json",
-        isSimulatedPreview: false,
-        testResults: [
+        const testResults = [
           {
-            name: "HTTP request",
-            status: "failed",
+            name: `HTTP status: ${targetStatus}`,
+            status:
+              targetStatus >= 200 && targetStatus < 400
+                ? ("passed" as const)
+                : ("failed" as const),
+            message: targetStatusText,
+          },
+          {
+            name: "Response time under 250ms",
+            status:
+              durationMs < 250 ? ("passed" as const) : ("failed" as const),
+            message: `Actual: ${durationMs}ms`,
+          },
+        ];
+
+        setResponse({
+          status: targetStatus,
+          statusText: targetStatusText,
+          durationMs,
+          sizeBytes: new Blob([responseText]).size,
+          timestamp: responseTimestamp,
+          headers: responseHeaders,
+          cookies: [],
+          body: responseText,
+          contentType,
+          isSimulatedPreview: false,
+          testResults,
+        });
+
+        // 8. Record successful HTTP execution.
+        const historyItem: RequestHistoryItem = {
+          id: `hist-${Date.now()}`,
+          name: activeRequestName,
+          method: activeMethod,
+          url: requestUrl,
+          status: targetStatus,
+          statusText: targetStatusText,
+          durationMs,
+          sizeBytes: new Blob([responseText]).size,
+          timestamp: responseTimestamp,
+          requestConfig: {
+            id: activeRequestId,
+            name: activeRequestName,
+            method: activeMethod,
+            url: requestUrl,
+            params: activeParams,
+            headers: activeHeaders,
+            auth: activeAuth,
+            body: activeBody,
+            scripts: activeScripts,
+            settings: activeSettings,
+          },
+        };
+
+        setHistory((previous) => [historyItem, ...previous.slice(0, 24)]);
+      } catch (caughtError: unknown) {
+        const durationMs = Math.round(performance.now() - startedAt);
+
+        const message =
+          caughtError instanceof Error
+            ? caughtError.name === "AbortError"
+              ? `Request timed out after ${timeoutMs}ms.`
+              : caughtError.message
+            : "An unexpected network error occurred.";
+
+        const errorBody = JSON.stringify(
+          {
+            error:
+              caughtError instanceof Error && caughtError.name === "AbortError"
+                ? "TimeoutError"
+                : "RequestError",
             message,
           },
-        ],
-      });
-    } finally {
-      clearTimeout(timeoutId);
-      requestInProgressRef.current = false;
-      setIsLoading(false);
-    }
-  }, [
-    fullUrl,
-    method,
-    headers,
-    auth,
-    body,
-    params,
-    scripts,
-    settings,
-    requestId,
-    requestName,
-    requestMode,
-  ]);
+          null,
+          2,
+        );
+
+        const responseTimestamp = new Date().toISOString();
+
+        setResponse({
+          status: 0,
+          statusText:
+            caughtError instanceof Error && caughtError.name === "AbortError"
+              ? "Request Timeout"
+              : "Network Error",
+          durationMs,
+          sizeBytes: new Blob([errorBody]).size,
+          timestamp: responseTimestamp,
+          headers: [],
+          cookies: [],
+          body: errorBody,
+          contentType: "application/json",
+          isSimulatedPreview: false,
+          testResults: [
+            {
+              name: "HTTP request",
+              status: "failed",
+              message,
+            },
+          ],
+        });
+
+        // Record failed attempts too.
+        const historyItem: RequestHistoryItem = {
+          id: `hist-${Date.now()}`,
+          name: activeRequestName,
+          method: activeMethod,
+          url: requestUrl,
+          status: null,
+          statusText:
+            caughtError instanceof Error && caughtError.name === "AbortError"
+              ? "Request Timeout"
+              : "Network Error",
+          durationMs,
+          sizeBytes: new Blob([errorBody]).size,
+          timestamp: responseTimestamp,
+          errorMessage: message,
+          requestConfig: {
+            id: activeRequestId,
+            name: activeRequestName,
+            method: activeMethod,
+            url: requestUrl,
+            params: activeParams,
+            headers: activeHeaders,
+            auth: activeAuth,
+            body: activeBody,
+            scripts: activeScripts,
+            settings: activeSettings,
+          },
+        };
+
+        setHistory((previous) => [historyItem, ...previous.slice(0, 24)]);
+      } finally {
+        clearTimeout(timeoutId);
+        requestInProgressRef.current = false;
+        setIsLoading(false);
+      }
+    },
+    [
+      method,
+      rawBaseUrl,
+      params,
+      headers,
+      auth,
+      body,
+      settings,
+      requestId,
+      requestName,
+      scripts,
+      requestMode,
+    ],
+  );
 
   return {
     // Request identification

@@ -361,6 +361,7 @@ export const ApiTesterPage: React.FC<ApiTesterPageProps> = () => {
               onClearHistory={requestHook.clearHistory}
               isCollapsed={isSidebarCollapsed}
               onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+              onRetryHistoryItem={requestHook.executeSimulatedRequest}
             />
           </div>
 
