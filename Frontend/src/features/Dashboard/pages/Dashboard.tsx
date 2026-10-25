@@ -13,6 +13,8 @@ const Dashboard = () => {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +57,20 @@ const Dashboard = () => {
     setMonitors((current) => [newMonitor, ...current]);
   };
 
+  const filteredMonitors = monitors.filter((monitor) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      monitor.name.toLowerCase().includes(query) ||
+      monitor.url.toLowerCase().includes(query);
+
+    const matchesStatus =
+      activeFilter === "All" ||
+      monitor.status.toLowerCase() === activeFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="min-h-screen bg-canvas text-text-light-primary flex flex-col font-sans selection:bg-coral selection:text-white antialiased">
       <Navbar />
@@ -74,9 +90,15 @@ const Dashboard = () => {
           </p>
         )}
 
-        <DashboardStats />
-        <SearchBar />
-        <DashboardList monitors={monitors} setMonitors={setMonitors} />
+        <DashboardStats monitors={monitors} />
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
+
+        <DashboardList monitors={filteredMonitors} setMonitors={setMonitors} />
       </PageContainer>
     </div>
   );
