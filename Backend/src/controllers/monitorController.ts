@@ -367,8 +367,9 @@ export async function updateMonitorController(req: Request, res: Response) {
 
     const [existingRows] = await pool.execute(
       `SELECT id, name, url, method, frequency, timeout,
-              headers, query_params, request_body, expected_status
-       FROM monitors
+        headers, query_params, request_body, expected_status,
+        target_mode
+        FROM monitors
        WHERE id = ? AND user_id = ?
        LIMIT 1`,
       [monitorId, user.id],
@@ -393,6 +394,14 @@ export async function updateMonitorController(req: Request, res: Response) {
     const queryParams = input.queryParams ?? existing.query_params ?? {};
     const body = input.body ?? existing.request_body;
     const expectedStatus = input.expectedStatus ?? existing.expected_status;
+
+    const targetMode = input.targetMode ?? existing.target_mode;
+
+    if (!["public", "local"].includes(targetMode)) {
+      return res.status(400).json({
+        message: "Target mode must be public or local",
+      });
+    }
 
     if (typeof name !== "string" || !name.trim() || name.trim().length > 100) {
       return res.status(400).json({
@@ -514,6 +523,7 @@ export async function updateMonitorController(req: Request, res: Response) {
            query_params = ?,
            request_body = ?,
            expected_status = ?,
+           target_mode = ?,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`,
       [
@@ -526,6 +536,7 @@ export async function updateMonitorController(req: Request, res: Response) {
         JSON.stringify(parsedQueryParams),
         requestBody,
         Number(expectedStatus),
+        targetMode,
         monitorId,
         user.id,
       ],
@@ -539,6 +550,7 @@ export async function updateMonitorController(req: Request, res: Response) {
         id: monitorId,
         name: name.trim(),
         url,
+        targetMode,
         method: method.toUpperCase(),
         frequency: Number(frequency),
         timeout: Number(timeout),

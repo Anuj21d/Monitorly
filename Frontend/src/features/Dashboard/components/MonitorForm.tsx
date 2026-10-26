@@ -43,6 +43,10 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
 
   const [password, setPassword] = useState(monitor?.authConfig?.password ?? "");
 
+  const [targetMode, setTargetMode] = useState<"public" | "local">(
+    monitor?.targetMode ?? "public",
+  );
+
   const [headersText, setHeadersText] = useState(
     JSON.stringify(monitor?.headers ?? {}, null, 2),
   );
@@ -136,6 +140,7 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
       id: monitor?.id ?? crypto.randomUUID(),
       name: serviceName.trim(),
       url: endpointUrl.trim(),
+      targetMode,
       method,
       frequency,
       timeout,
@@ -239,6 +244,31 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
                   />
                 </div>
               </div>
+
+              <div>
+                <label htmlFor="target-mode" className={labelClassName}>
+                  Monitoring Target
+                </label>
+
+                <select
+                  id="target-mode"
+                  value={targetMode}
+                  onChange={(e) =>
+                    setTargetMode(e.target.value as "public" | "local")
+                  }
+                  className={fieldClassName}
+                >
+                  <option value="public">Public API — Backend</option>
+                  <option value="local">Local API — LocalAgent</option>
+                </select>
+
+                <p className="mt-2 text-xs text-[#888888]">
+                  {targetMode === "public"
+                    ? "The backend will check a publicly accessible API."
+                    : "The LocalAgent on your computer will check your local API."}
+                </p>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-3">
                 {/* HTTP Method */}
                 <div>

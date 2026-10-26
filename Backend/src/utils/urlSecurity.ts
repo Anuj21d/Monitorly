@@ -1,15 +1,20 @@
-
 import dns from "node:dns/promises";
+import net from "node:net";
 import ipaddr from "ipaddr.js";
 
-const BLOCKED_HOSTNAMES = new Set([
-  "localhost",
-  "metadata.google.internal",
-]);
+const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
 
-export async function validateMonitorUrl(
-  input: string
-): Promise<URL> {
+export type ValidatedMonitorTarget = {
+  url: URL;
+  addresses: Array<{
+    address: string;
+    family: number;
+  }>;
+};
+
+export async function resolveMonitorUrl(
+  input: string,
+): Promise<ValidatedMonitorTarget> {
   let url: URL;
 
   try {
@@ -26,7 +31,10 @@ export async function validateMonitorUrl(
     throw new Error("URLs must not contain embedded credentials");
   }
 
-  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+  const hostname = url.hostname
+    .replace(/^\[|\]$/g, "")
+    .toLowerCase()
+    .replace(/\.$/, "");
 
   if (
     !hostname ||
@@ -34,39 +42,45 @@ export async function validateMonitorUrl(
     hostname.endsWith(".localhost") ||
     hostname.endsWith(".local")
   ) {
-    throw new Error("This hostname is not allowed for monitoring");
+    throw new Error("This hostname is not allowed for public monitoring");
   }
 
-  // If the hostname is an IP literal, classify it directly.
-  if (ipaddr.isValid(hostname)) {
-    const address = ipaddr.process(hostname);
+  let addresses: Array<{ address: string; family: number }>;
 
-    if (address.range() !== "unicast") {
-      throw new Error("This IP address is not allowed for monitoring");
+  if (net.isIP(hostname)) {
+    addresses = [{ address: hostname, family: net.isIP(hostname) }];
+  } else {
+    try {
+      addresses = await dns.lookup(hostname, {
+        all: true,
+        verbatim: true,
+      });
+    } catch {
+      throw new Error("Unable to resolve monitor hostname");
     }
-
-    return url;
-  }
-
-  // Resolve DNS and reject destinations that include non-public addresses.
-  let addresses: Awaited<ReturnType<typeof dns.lookup>>[];
-
-  try {
-    addresses = await dns.lookup(hostname, { all: true, verbatim: true });
-  } catch {
-    throw new Error("Unable to resolve monitor hostname");
   }
 
   if (
     addresses.length === 0 ||
-    addresses.some(({ address }) => {
-      if (!ipaddr.isValid(address)) return true;
+    addresses.some(({ address, family }) => {
+      if (!net.isIP(address) || !ipaddr.isValid(address)) {
+        return true;
+      }
+
+      if (net.isIP(address) !== family) {
+        return true;
+      }
+
       return ipaddr.process(address).range() !== "unicast";
     })
   ) {
     throw new Error("Hostname resolves to a non-public IP address");
   }
 
-  return url;
+  return { url, addresses };
 }
 
+export async function validateMonitorUrl(input: string): Promise<URL> {
+  const target = await resolveMonitorUrl(input);
+  return target.url;
+}
