@@ -32,7 +32,14 @@ export async function createMonitorController(req: Request, res: Response) {
       authType = "none",
       body,
       expectedStatus = 200,
+      targetMode = "public",
     } = req.body;
+
+    if (!["public", "local"].includes(targetMode)) {
+      return res.status(400).json({
+        message: "Target mode must be public or local",
+      });
+    }
 
     if (typeof name !== "string" || !name.trim() || name.trim().length > 100) {
       return res.status(400).json({
@@ -133,21 +140,22 @@ export async function createMonitorController(req: Request, res: Response) {
 
     const [result] = await pool.execute(
       `INSERT INTO monitors
-        (
-          user_id,
-          name,
-          url,
-          method,
-          frequency,
-          timeout,
-          headers,
-          query_params,
-          auth_type,
-          auth_config,
-          request_body,
-          expected_status
-        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+   (
+     user_id,
+     name,
+     url,
+     method,
+     frequency,
+     timeout,
+     headers,
+     query_params,
+     auth_type,
+     auth_config,
+     request_body,
+     expected_status,
+     target_mode
+   )
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         user.id,
         name.trim(),
@@ -161,6 +169,7 @@ export async function createMonitorController(req: Request, res: Response) {
         null,
         requestBody === null ? null : JSON.stringify(requestBody),
         expectedStatus,
+        targetMode,
       ],
     );
 
@@ -172,6 +181,7 @@ export async function createMonitorController(req: Request, res: Response) {
         id: insertResult.insertId,
         name: name.trim(),
         url,
+        targetMode,
         method: method.toUpperCase(),
         status: "healthy",
         responseTime: null,
@@ -232,6 +242,7 @@ export async function getMonitorsController(req: Request, res: Response) {
         auth_type AS authType,
         request_body AS body,
         expected_status AS expectedStatus,
+        target_mode AS targetMode,
         created_at AS createdAt,
         updated_at AS updatedAt
        FROM monitors
@@ -297,6 +308,7 @@ export async function getMonitorController(req: Request, res: Response) {
         auth_type AS authType,
         request_body AS body,
         expected_status AS expectedStatus,
+        target_mode AS targetMode,
         created_at AS createdAt,
         updated_at AS updatedAt
        FROM monitors

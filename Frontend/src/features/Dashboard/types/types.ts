@@ -1,27 +1,14 @@
+export type MonitorStatus = "healthy" | "degraded" | "down" | "paused";
 
-export type MonitorStatus =
-  | "healthy"
-  | "degraded"
-  | "down"
-  | "paused";
+export type MonitorMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-export type MonitorMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE";
-
-export type MonitorAuthType =
-  | "none"
-  | "bearer"
-  | "apiKey"
-  | "basic";
+export type MonitorAuthType = "none" | "bearer" | "apiKey" | "basic";
 
 export type Monitor = {
   id: string;
   name: string;
   url: string;
+  targetMode: "public" | "local";
   method: MonitorMethod;
   status: MonitorStatus;
   responseTime: number | null;
