@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import pool from "../config/database.js";
+import { checkMonitorHealth } from "./monitorHealthService.js";
 
 type DueMonitor = {
   id: number;
@@ -14,6 +15,7 @@ type DueMonitor = {
 };
 
 let schedulerStarted = false;
+let schedulerTickRunning = false;
 const monitorsInFlight = new Set<number>();
 
 async function findDuePublicMonitors(): Promise<DueMonitor[]> {
@@ -45,6 +47,59 @@ async function findDuePublicMonitors(): Promise<DueMonitor[]> {
   return rows as DueMonitor[];
 }
 
+async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
+  if (monitorsInFlight.has(monitor.id)) {
+    return;
+  }
+
+  monitorsInFlight.add(monitor.id);
+
+  try {
+    const result = await checkMonitorHealth({
+      url: monitor.url,
+      method: monitor.method,
+      timeout: monitor.timeout,
+      expectedStatus: monitor.expectedStatus,
+      ...(monitor.headers != null && {
+        headers: monitor.headers,
+      }),
+      ...(monitor.queryParams != null && {
+        queryParams: monitor.queryParams,
+      }),
+      ...(monitor.body != null && {
+        body: monitor.body,
+      }),
+    });
+
+    await pool.execute(
+      `UPDATE monitors
+       SET status = ?,
+           response_time = ?,
+           last_checked = UTC_TIMESTAMP(),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?
+         AND target_mode = 'public'
+         AND status <> 'paused'`,
+      [result.status, result.responseTime, monitor.id],
+    );
+
+    await pool.execute(
+      `INSERT INTO monitor_checks
+        (monitor_id, status, response_time, actual_status, checked_at)
+       VALUES (?, ?, ?, ?, UTC_TIMESTAMP())`,
+      [monitor.id, result.status, result.responseTime, result.actualStatus],
+    );
+
+    console.log(
+      `Monitor ${monitor.id}: ${result.status}, ${result.responseTime} ms`,
+    );
+  } catch (error) {
+    console.error(`Monitor ${monitor.id} check failed:`, error);
+  } finally {
+    monitorsInFlight.delete(monitor.id);
+  }
+}
+
 export function startMonitorScheduler(): void {
   if (schedulerStarted) {
     return;
@@ -53,11 +108,20 @@ export function startMonitorScheduler(): void {
   schedulerStarted = true;
 
   cron.schedule("*/10 * * * * *", async () => {
+    if (schedulerTickRunning) {
+      return;
+    }
+
+    schedulerTickRunning = true;
+
     try {
       const monitors = await findDuePublicMonitors();
-      console.log(`Found ${monitors.length} public monitors due for checking`);
+
+      await Promise.all(monitors.map((monitor) => runMonitorCheck(monitor)));
     } catch (error) {
       console.error("Monitor scheduler query failed:", error);
+    } finally {
+      schedulerTickRunning = false;
     }
   });
 
