@@ -71,6 +71,15 @@ async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
       }),
     });
 
+    // 1. Save this check's result to history first.
+    await pool.execute(
+      `INSERT INTO monitor_checks
+        (monitor_id, status, response_time, actual_status, checked_at)
+       VALUES (?, ?, ?, ?, UTC_TIMESTAMP())`,
+      [monitor.id, result.status, result.responseTime, result.actualStatus],
+    );
+
+    // 2. Update the monitor using the latest history.
     await pool.execute(
       `UPDATE monitors
        SET status = ?,
@@ -92,13 +101,6 @@ async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
          AND target_mode = 'public'
          AND status <> 'paused'`,
       [result.status, result.responseTime, monitor.id, monitor.id],
-    );
-
-    await pool.execute(
-      `INSERT INTO monitor_checks
-        (monitor_id, status, response_time, actual_status, checked_at)
-       VALUES (?, ?, ?, ?, UTC_TIMESTAMP())`,
-      [monitor.id, result.status, result.responseTime, result.actualStatus],
     );
 
     console.log(

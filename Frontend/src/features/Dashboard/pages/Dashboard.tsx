@@ -19,15 +19,18 @@ const Dashboard = () => {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadMonitors() {
+    async function loadMonitors(isInitialLoad = false) {
       try {
-        setIsLoading(true);
-        setError(null);
+        if (isInitialLoad) {
+          setIsLoading(true);
+          setError(null);
+        }
 
         const data = await getMonitors();
 
         if (!cancelled) {
           setMonitors(data);
+          setError(null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -40,16 +43,21 @@ const Dashboard = () => {
           );
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && isInitialLoad) {
           setIsLoading(false);
         }
       }
     }
 
-    void loadMonitors();
+    void loadMonitors(true);
+
+    const intervalId = window.setInterval(() => {
+      void loadMonitors();
+    }, 5000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, []);
 

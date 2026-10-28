@@ -15,7 +15,7 @@ function normalizeMonitor(data: Record<string, unknown>): Monitor {
     method: data.method as Monitor["method"],
     status: data.status as Monitor["status"],
     responseTime: data.responseTime == null ? null : Number(data.responseTime),
-    uptime: Number(data.uptime ?? 100),
+    uptime: Number(data.uptime ?? 0),
     frequency: Number(data.frequency ?? 60),
     timeout: Number(data.timeout ?? 10),
     lastChecked: data.lastChecked == null ? null : String(data.lastChecked),
