@@ -76,11 +76,22 @@ async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
        SET status = ?,
            response_time = ?,
            last_checked = UTC_TIMESTAMP(),
+           uptime = (
+             SELECT COALESCE(
+               ROUND(
+                 100.0 * SUM(status = 'healthy') / NULLIF(COUNT(*), 0),
+                 2
+               ),
+               0
+             )
+             FROM monitor_checks
+             WHERE monitor_id = ?
+           ),
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?
          AND target_mode = 'public'
          AND status <> 'paused'`,
-      [result.status, result.responseTime, monitor.id],
+      [result.status, result.responseTime, monitor.id, monitor.id],
     );
 
     await pool.execute(
