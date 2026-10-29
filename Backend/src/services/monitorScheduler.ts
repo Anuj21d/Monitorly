@@ -33,6 +33,7 @@ async function findDuePublicMonitors(): Promise<DueMonitor[]> {
      FROM monitors
      WHERE target_mode = 'public'
        AND status <> 'paused'
+       AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
        AND (
          last_checked IS NULL
          OR last_checked <= DATE_SUB(
@@ -99,7 +100,8 @@ async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ?
          AND target_mode = 'public'
-         AND status <> 'paused'`,
+         AND status <> 'paused'
+         AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())`,
       [result.status, result.responseTime, monitor.id, monitor.id],
     );
 

@@ -16,6 +16,7 @@ export type Monitor = {
   frequency: number;
   lastChecked: string | null;
   timeout?: number;
+  expiresAt?: string | null;
 
   // Request configuration
   queryParams?: Record<string, string>;

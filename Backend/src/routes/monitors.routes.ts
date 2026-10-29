@@ -8,6 +8,7 @@ import {
   deleteMonitorController,
   pauseMonitorController,
   resumeMonitorController,
+  getMonitorHistoryController,
 } from "../controllers/monitorController.js";
 import { authUser } from "../middleware/auth.middleware.js";
 
@@ -35,6 +36,13 @@ monitorRouter.get("/", getMonitorsController);
  * @access Private
  */
 monitorRouter.get("/:id", getMonitorController);
+
+/**
+ * @route GET /api/monitors/:id/history
+ * @description Get recent check history for a monitor
+ * @access Private
+ */
+monitorRouter.get("/:id/history", getMonitorHistoryController);
 
 /**
  * @route PUT /api/monitors/:id

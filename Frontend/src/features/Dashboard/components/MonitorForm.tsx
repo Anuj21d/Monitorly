@@ -21,6 +21,15 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
 
   const [timeout, setTimeoutValue] = useState(monitor?.timeout ?? 10);
 
+  const [expiresAt, setExpiresAt] = useState(() => {
+    if (!monitor?.expiresAt) return "";
+
+    const date = new Date(monitor.expiresAt);
+    const timezoneOffset = date.getTimezoneOffset() * 60_000;
+
+    return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  });
+
   const [authType, setAuthType] = useState<
     "none" | "bearer" | "apiKey" | "basic"
   >(monitor?.authType ?? "none");
@@ -144,6 +153,7 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
       method,
       frequency,
       timeout,
+      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
       status: monitor?.status ?? "healthy",
       responseTime: monitor?.responseTime ?? null,
       uptime: monitor?.uptime ?? 100,
@@ -333,6 +343,29 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
                       seconds
                     </span>
                   </div>
+                </div>
+                <div>
+                  <label htmlFor="expiresAt" className={labelClassName}>
+                    Expiration Date & Time (Optional)
+                  </label>
+
+                  <input
+                    id="expiresAt"
+                    type="datetime-local"
+                    value={expiresAt}
+                    min={new Date(
+                      Date.now() - new Date().getTimezoneOffset() * 60_000,
+                    )
+                      .toISOString()
+                      .slice(0, 16)}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className={fieldClassName}
+                  />
+
+                  <p className="mt-1 text-xs text-gray-400">
+                    Monitoring stops automatically at this date and time. Leave
+                    empty for no expiration.
+                  </p>
                 </div>
               </div>
             </section>

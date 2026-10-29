@@ -10,6 +10,7 @@ import {
   resumeMonitor,
   updateMonitor,
 } from "../services/monitorService";
+import MonitorHistory from "./MonitorHistory";
 
 const ActionIcon = () => (
   <svg
@@ -36,7 +37,8 @@ type ActionDropdownProps = {
   monitor: Monitor;
   onEdit: (monitor: Monitor) => void;
   onTogglePause: (id: string) => void;
-  onDelete: (monitor: Monitor) => void; // Updated to pass the specific monitor
+  onDelete: (monitor: Monitor) => void;
+  onViewHistory: (monitor: Monitor) => void;
 };
 
 const ActionDropdown = ({
@@ -45,6 +47,7 @@ const ActionDropdown = ({
   onEdit,
   onTogglePause,
   onDelete,
+  onViewHistory,
 }: ActionDropdownProps) => (
   <div
     className={`absolute right-0 ${
@@ -55,6 +58,7 @@ const ActionDropdown = ({
       type="button"
       onClick={(e) => {
         e.stopPropagation();
+        onViewHistory(monitor);
       }}
       className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#F5F3EE] hover:bg-white/[0.06] transition-colors"
     >
@@ -106,6 +110,8 @@ type DashboardListProps = {
 const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
   const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null);
   const [monitorToDelete, setMonitorToDelete] = useState<Monitor | null>(null);
+
+  const [historyMonitor, setHistoryMonitor] = useState<Monitor | null>(null);
 
   const handleUpdateMonitor = async (updatedMonitor: Monitor) => {
     try {
@@ -220,6 +226,9 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                   <tbody className="divide-y divide-white/[0.05]">
                     {monitors.map((monitor, index) => {
                       const isBottom = index >= monitors.length - 3;
+                      const isExpired =
+                        Boolean(monitor.expiresAt) &&
+                        new Date(monitor.expiresAt!).getTime() <= Date.now();
                       return (
                         <tr
                           key={monitor.id}
@@ -241,7 +250,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                               <span
                                 className={`${monitor.status === "paused" ? "text-text-dark-muted " : "text-healthy"} font-mono uppercase`}
                               >
-                                {monitor.status}
+                                {isExpired ? "Expired" : monitor.status}F
                               </span>
                             </span>
                           </td>
@@ -274,6 +283,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                                 onEdit={setEditingMonitor}
                                 onTogglePause={handleTogglePause}
                                 onDelete={setMonitorToDelete}
+                                onViewHistory={setHistoryMonitor}
                               />
                             </div>
                           </td>
@@ -288,6 +298,9 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
               <div className="md:hidden divide-y divide-white/[0.06]">
                 {monitors.map((monitor, index) => {
                   const isBottom = index >= monitors.length - 3;
+                  const isExpired =
+                    Boolean(monitor.expiresAt) &&
+                    new Date(monitor.expiresAt!).getTime() <= Date.now();
                   return (
                     <div
                       key={monitor.id}
@@ -301,7 +314,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                           <div className="flex items-center gap-1.5 mt-1 text-xs">
                             <span className="w-2 h-2 rounded-full bg-[#10B981]" />
                             <span className="text-[#10B981]">
-                              {monitor.status}
+                              {isExpired ? "Expired" : monitor.status}
                             </span>
                           </div>
                         </div>
@@ -322,6 +335,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                             onEdit={setEditingMonitor}
                             onTogglePause={handleTogglePause}
                             onDelete={setMonitorToDelete}
+                            onViewHistory={setHistoryMonitor}
                           />
                         </div>
                       </div>
@@ -350,6 +364,26 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
           )}
         </div>
       </section>
+
+      {historyMonitor && (
+        <div className="mt-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#F5F3EE]">
+              History: {historyMonitor.name}
+            </h2>
+
+            <button
+              type="button"
+              onClick={() => setHistoryMonitor(null)}
+              className="rounded-lg border border-white/10 px-3 py-2 text-sm text-[#F5F3EE] hover:bg-white/5"
+            >
+              Close
+            </button>
+          </div>
+
+          <MonitorHistory monitorId={String(historyMonitor.id)} />
+        </div>
+      )}
 
       {/* Edit Monitor Modal */}
       {editingMonitor && (

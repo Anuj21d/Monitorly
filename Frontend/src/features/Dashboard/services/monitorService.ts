@@ -25,6 +25,10 @@ function normalizeMonitor(data: Record<string, unknown>): Monitor {
     targetMode: data.targetMode === "local" ? "local" : "public",
     body: data.body == null ? null : String(data.body),
     expectedStatus: Number(data.expectedStatus ?? 200),
+    expiresAt:
+      typeof data.expiresAt === "string" || data.expiresAt === null
+        ? data.expiresAt
+        : null,
   };
 }
 
@@ -57,6 +61,7 @@ export async function createMonitor(monitor: Monitor): Promise<Monitor> {
     queryParams: monitor.queryParams ?? {},
     authType: monitor.authType ?? "none",
     targetMode: monitor.targetMode ?? "public",
+    expiresAt: monitor.expiresAt ?? null,
     body: monitor.body,
     expectedStatus: monitor.expectedStatus ?? 200,
   });
@@ -83,6 +88,7 @@ export async function updateMonitor(
     body: monitor.body,
     expectedStatus: monitor.expectedStatus,
     targetMode: monitor.targetMode,
+    expiresAt: monitor.expiresAt ?? null,
   });
 }
 
@@ -96,4 +102,26 @@ export async function pauseMonitor(id: string): Promise<void> {
 
 export async function resumeMonitor(id: string): Promise<void> {
   await apiClient.patch(`/api/monitors/${id}/resume`);
+}
+
+export type MonitorCheck = {
+  id: number;
+  status: "healthy" | "degraded" | "down";
+  responseTime: number;
+  actualStatus: number | null;
+  checkedAt: string;
+};
+
+export async function getMonitorHistory(
+  id: string,
+  limit = 50,
+): Promise<MonitorCheck[]> {
+  const response = await apiClient.get<{ history: MonitorCheck[] }>(
+    `/api/monitors/${id}/history`,
+    {
+      params: { limit },
+    },
+  );
+
+  return response.data.history;
 }

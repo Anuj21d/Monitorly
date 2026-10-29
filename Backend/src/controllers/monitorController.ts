@@ -33,7 +33,24 @@ export async function createMonitorController(req: Request, res: Response) {
       body,
       expectedStatus = 200,
       targetMode = "public",
+      expiresAt = null,
     } = req.body;
+
+    if (expiresAt !== null) {
+      if (
+        typeof expiresAt !== "string" ||
+        Number.isNaN(Date.parse(expiresAt)) ||
+        new Date(expiresAt).getTime() <= Date.now()
+      ) {
+        return res.status(400).json({
+          message: "Expiration date must be a valid future date and time",
+        });
+      }
+    }
+
+    const formattedExpiresAt = expiresAt
+      ? new Date(expiresAt).toISOString().slice(0, 19).replace("T", " ")
+      : null;
 
     if (!["public", "local"].includes(targetMode)) {
       return res.status(400).json({
@@ -140,22 +157,23 @@ export async function createMonitorController(req: Request, res: Response) {
 
     const [result] = await pool.execute(
       `INSERT INTO monitors
-   (
-     user_id,
-     name,
-     url,
-     method,
-     frequency,
-     timeout,
-     headers,
-     query_params,
-     auth_type,
-     auth_config,
-     request_body,
-     expected_status,
-     target_mode
-   )
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+ (
+   user_id,
+   name,
+   url,
+   method,
+   frequency,
+   timeout,
+   headers,
+   query_params,
+   auth_type,
+   auth_config,
+   request_body,
+   expected_status,
+   target_mode,
+   expires_at
+ )
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         user.id,
         name.trim(),
@@ -170,6 +188,7 @@ export async function createMonitorController(req: Request, res: Response) {
         requestBody === null ? null : JSON.stringify(requestBody),
         expectedStatus,
         targetMode,
+        formattedExpiresAt,
       ],
     );
 
@@ -243,6 +262,7 @@ export async function getMonitorsController(req: Request, res: Response) {
         request_body AS body,
         expected_status AS expectedStatus,
         target_mode AS targetMode,
+        expires_at AS expiresAt,
         created_at AS createdAt,
         updated_at AS updatedAt
        FROM monitors
@@ -309,6 +329,7 @@ export async function getMonitorController(req: Request, res: Response) {
         request_body AS body,
         expected_status AS expectedStatus,
         target_mode AS targetMode,
+        expires_at AS expiresAt,
         created_at AS createdAt,
         updated_at AS updatedAt
        FROM monitors
@@ -333,6 +354,75 @@ export async function getMonitorController(req: Request, res: Response) {
 
     return res.status(500).json({
       message: "Failed to retrieve monitor",
+    });
+  }
+}
+
+/**
+ * @name getMonitorHistoryController
+ * @description Get recent check history for a monitor owned by the authenticated user
+ * @access Private
+ */
+export async function getMonitorHistoryController(req: Request, res: Response) {
+  try {
+    const user = (
+      req as Request & {
+        user?: { id: number; username?: string };
+      }
+    ).user;
+
+    if (!user?.id) {
+      return res.status(401).json({
+        message: "Authentication required",
+      });
+    }
+
+    const monitorId = Number(req.params.id);
+
+    if (!Number.isInteger(monitorId) || monitorId <= 0) {
+      return res.status(400).json({
+        message: "Invalid monitor ID",
+      });
+    }
+
+    const requestedLimit = Number(req.query.limit ?? 50);
+    const limit = Number.isInteger(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 50;
+
+    const [monitorRows] = await pool.execute(
+      `SELECT id FROM monitors WHERE id = ? AND user_id = ? LIMIT 1`,
+      [monitorId, user.id],
+    );
+
+    if ((monitorRows as Record<string, unknown>[]).length === 0) {
+      return res.status(404).json({
+        message: "Monitor not found",
+      });
+    }
+
+    const [historyRows] = await pool.execute(
+      `SELECT
+         id,
+         status,
+         response_time AS responseTime,
+         actual_status AS actualStatus,
+         checked_at AS checkedAt
+       FROM monitor_checks
+       WHERE monitor_id = ?
+       ORDER BY checked_at DESC, id DESC
+       LIMIT ${limit}`,
+      [monitorId],
+    );
+
+    return res.status(200).json({
+      history: historyRows,
+    });
+  } catch (error) {
+    console.error("Get monitor history error:", error);
+
+    return res.status(500).json({
+      message: "Failed to retrieve monitor history",
     });
   }
 }
@@ -368,7 +458,7 @@ export async function updateMonitorController(req: Request, res: Response) {
     const [existingRows] = await pool.execute(
       `SELECT id, name, url, method, frequency, timeout,
         headers, query_params, request_body, expected_status,
-        target_mode
+        target_mode ,expires_at
         FROM monitors
        WHERE id = ? AND user_id = ?
        LIMIT 1`,
@@ -396,6 +486,31 @@ export async function updateMonitorController(req: Request, res: Response) {
     const expectedStatus = input.expectedStatus ?? existing.expected_status;
 
     const targetMode = input.targetMode ?? existing.target_mode;
+    const expiresAt =
+      input.expiresAt !== undefined ? input.expiresAt : existing.expires_at;
+
+    const formattedExpiresAt =
+      expiresAt === null
+        ? null
+        : new Date(expiresAt as string | Date)
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " ");
+
+    if (expiresAt !== null) {
+      const expirationTime =
+        typeof expiresAt === "string"
+          ? new Date(expiresAt).getTime()
+          : expiresAt instanceof Date
+            ? expiresAt.getTime()
+            : Number.NaN;
+
+      if (!Number.isFinite(expirationTime) || expirationTime <= Date.now()) {
+        return res.status(400).json({
+          message: "Expiration date must be a valid future date and time",
+        });
+      }
+    }
 
     if (!["public", "local"].includes(targetMode)) {
       return res.status(400).json({
@@ -524,6 +639,7 @@ export async function updateMonitorController(req: Request, res: Response) {
            request_body = ?,
            expected_status = ?,
            target_mode = ?,
+           expires_at = ?,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`,
       [
@@ -537,6 +653,7 @@ export async function updateMonitorController(req: Request, res: Response) {
         requestBody,
         Number(expectedStatus),
         targetMode,
+        formattedExpiresAt,
         monitorId,
         user.id,
       ],
