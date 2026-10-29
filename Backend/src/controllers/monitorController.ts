@@ -1,5 +1,6 @@
 import type { Response, Request } from "express";
 import pool from "../config/database.js";
+import { encryptCredentials } from "../services/credentialEncryption.js";
 
 /**
  * @name createMonitorController
@@ -132,12 +133,21 @@ export async function createMonitorController(req: Request, res: Response) {
       });
     }
 
-    // Do not persist credentials until encryption is configured.
+    let encryptedAuthConfig: string | null = null;
+
     if (authType !== "none") {
-      return res.status(501).json({
-        message:
-          "Authenticated monitors are not available until secure credential storage is configured",
-      });
+      if (
+        !["api_key", "bearer", "basic"].includes(authType) ||
+        !req.body.authConfig ||
+        typeof req.body.authConfig !== "object" ||
+        Array.isArray(req.body.authConfig)
+      ) {
+        return res.status(400).json({
+          message: "Valid authentication configuration is required",
+        });
+      }
+
+      encryptedAuthConfig = encryptCredentials(req.body.authConfig);
     }
 
     let requestBody: unknown = null;
@@ -183,8 +193,8 @@ export async function createMonitorController(req: Request, res: Response) {
         timeout,
         JSON.stringify(headers),
         JSON.stringify(queryParams),
-        "none",
-        null,
+        authType,
+        encryptedAuthConfig,
         requestBody === null ? null : JSON.stringify(requestBody),
         expectedStatus,
         targetMode,

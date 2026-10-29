@@ -35,6 +35,7 @@ const ActionIcon = () => (
 type ActionDropdownProps = {
   isBottom: boolean;
   monitor: Monitor;
+  isExpired: boolean;
   onEdit: (monitor: Monitor) => void;
   onTogglePause: (id: string) => void;
   onDelete: (monitor: Monitor) => void;
@@ -44,6 +45,7 @@ type ActionDropdownProps = {
 const ActionDropdown = ({
   isBottom,
   monitor,
+  isExpired,
   onEdit,
   onTogglePause,
   onDelete,
@@ -75,6 +77,19 @@ const ActionDropdown = ({
     >
       <span>Edit</span>
     </button>
+
+    {isExpired && (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(monitor);
+        }}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#F5F3EE] hover:bg-white/[0.06] transition-colors"
+      >
+        Extend Expiration
+      </button>
+    )}
 
     <button
       type="button"
@@ -280,6 +295,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                               <ActionDropdown
                                 isBottom={isBottom}
                                 monitor={monitor}
+                                isExpired={isExpired}
                                 onEdit={setEditingMonitor}
                                 onTogglePause={handleTogglePause}
                                 onDelete={setMonitorToDelete}
@@ -332,6 +348,7 @@ const DashboardList = ({ monitors, setMonitors }: DashboardListProps) => {
                           <ActionDropdown
                             isBottom={isBottom}
                             monitor={monitor}
+                            isExpired={isExpired}
                             onEdit={setEditingMonitor}
                             onTogglePause={handleTogglePause}
                             onDelete={setMonitorToDelete}
