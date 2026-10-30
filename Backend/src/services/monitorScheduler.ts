@@ -115,7 +115,7 @@ async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
       `Monitor ${monitor.id}: ${result.status}, ${result.responseTime} ms`,
     );
   } catch (error) {
-    console.error(`Monitor ${monitor.id} check failed:`, error);
+    console.error(`Monitor check failed for monitor ID: ${monitor.id}`);
   } finally {
     monitorsInFlight.delete(monitor.id);
   }

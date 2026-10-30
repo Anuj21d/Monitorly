@@ -44,10 +44,6 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
     monitor?.authConfig?.apiKeyValue ?? "",
   );
 
-  const [apiKeyLocation, setApiKeyLocation] = useState<"header" | "query">(
-    monitor?.authConfig?.apiKeyLocation ?? "header",
-  );
-
   const [username, setUsername] = useState(monitor?.authConfig?.username ?? "");
 
   const [password, setPassword] = useState(monitor?.authConfig?.password ?? "");
@@ -137,15 +133,15 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
     }
 
     const authConfig =
-      authType === "bearer"
-        ? { token }
-        : authType === "api_key"
+      authType === "bearer" && token.trim()
+        ? { token: token.trim() }
+        : authType === "api_key" && apiKeyValue.trim() && apiKeyName.trim()
           ? {
-              apiKey: apiKeyValue,
-              headerName: apiKeyName,
+              apiKey: apiKeyValue.trim(),
+              headerName: apiKeyName.trim(),
             }
-          : authType === "basic"
-            ? { username, password }
+          : authType === "basic" && username.trim() && password
+            ? { username: username.trim(), password }
             : undefined;
 
     const updatedMonitor: Monitor = {
@@ -430,17 +426,11 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
                       placeholder="API key value"
                       className={fieldClassName}
                     />
-
-                    <select
-                      value={apiKeyLocation}
-                      onChange={(e) =>
-                        setApiKeyLocation(e.target.value as "header" | "query")
-                      }
-                      className={fieldClassName}
-                    >
-                      <option value="header">Send in header</option>
-                      <option value="query">Send in query parameter</option>
-                    </select>
+                    {isEditing && (
+                      <p className="text-xs text-gray-400">
+                        Leave blank to keep your existing API key.
+                      </p>
+                    )}
                   </div>
                 )}
 

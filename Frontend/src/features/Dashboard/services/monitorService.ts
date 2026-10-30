@@ -90,6 +90,8 @@ export async function updateMonitor(
     expectedStatus: monitor.expectedStatus,
     targetMode: monitor.targetMode,
     expiresAt: monitor.expiresAt ?? null,
+    authType: monitor.authType ?? "none",
+    ...(monitor.authConfig ? { authConfig: monitor.authConfig } : {}),
   });
 }
 

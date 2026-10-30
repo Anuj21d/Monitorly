@@ -220,7 +220,7 @@ export async function createMonitorController(req: Request, res: Response) {
         lastChecked: null,
         headers,
         queryParams,
-        authType: "none",
+        authType,
         body: requestBody,
         expectedStatus,
       },
@@ -728,6 +728,8 @@ export async function updateMonitorController(req: Request, res: Response) {
            expected_status = ?,
            target_mode = ?,
            expires_at = ?,
+           auth_type = ?,
+           auth_config = ?,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND user_id = ?`,
       [
@@ -742,6 +744,8 @@ export async function updateMonitorController(req: Request, res: Response) {
         Number(expectedStatus),
         targetMode,
         formattedExpiresAt,
+        authType,
+        encryptedAuthConfig,
         monitorId,
         user.id,
       ],
@@ -763,6 +767,7 @@ export async function updateMonitorController(req: Request, res: Response) {
         queryParams: parsedQueryParams,
         body: requestBody === null ? null : JSON.parse(requestBody),
         expectedStatus: Number(expectedStatus),
+        authType,
       },
       unchanged: updateResult.affectedRows === 0,
     });
