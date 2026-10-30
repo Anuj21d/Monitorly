@@ -31,7 +31,7 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
   });
 
   const [authType, setAuthType] = useState<
-    "none" | "bearer" | "apiKey" | "basic"
+    "none" | "bearer" | "api_key" | "basic"
   >(monitor?.authType ?? "none");
 
   const [token, setToken] = useState(monitor?.authConfig?.token ?? "");
@@ -139,8 +139,11 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
     const authConfig =
       authType === "bearer"
         ? { token }
-        : authType === "apiKey"
-          ? { apiKeyName, apiKeyValue, apiKeyLocation }
+        : authType === "api_key"
+          ? {
+              apiKey: apiKeyValue,
+              headerName: apiKeyName,
+            }
           : authType === "basic"
             ? { username, password }
             : undefined;
@@ -388,14 +391,14 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
                   value={authType}
                   onChange={(e) =>
                     setAuthType(
-                      e.target.value as "none" | "bearer" | "apiKey" | "basic",
+                      e.target.value as "none" | "bearer" | "api_key" | "basic",
                     )
                   }
                   className={fieldClassName}
                 >
                   <option value="none">None</option>
                   <option value="bearer">Bearer Token</option>
-                  <option value="apiKey">API Key</option>
+                  <option value="api_key">API Key</option>
                   <option value="basic">Basic Authentication</option>
                 </select>
 
@@ -410,7 +413,7 @@ const MonitorForm = ({ monitor, onClose, onSubmit }: MonitorFormProps) => {
                   />
                 )}
 
-                {authType === "apiKey" && (
+                {authType === "api_key" && (
                   <div className="space-y-3 mt-3">
                     <input
                       value={apiKeyName}

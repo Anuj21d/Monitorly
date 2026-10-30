@@ -12,6 +12,8 @@ type DueMonitor = {
   headers: Record<string, string> | null;
   queryParams: Record<string, string> | null;
   body: unknown;
+  authType: "none" | "api_key" | "bearer" | "basic";
+  authConfig: string | null;
 };
 
 let schedulerStarted = false;
@@ -29,7 +31,9 @@ async function findDuePublicMonitors(): Promise<DueMonitor[]> {
        expected_status AS expectedStatus,
        headers,
        query_params AS queryParams,
-       request_body AS body
+       request_body AS body,
+       auth_type AS authType,
+       auth_config AS authConfig
      FROM monitors
      WHERE target_mode = 'public'
        AND status <> 'paused'
@@ -61,6 +65,8 @@ async function runMonitorCheck(monitor: DueMonitor): Promise<void> {
       method: monitor.method,
       timeout: monitor.timeout,
       expectedStatus: monitor.expectedStatus,
+      authType: monitor.authType,
+      authConfig: monitor.authConfig,
       ...(monitor.headers != null && {
         headers: monitor.headers,
       }),

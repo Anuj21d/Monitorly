@@ -466,9 +466,21 @@ export async function updateMonitorController(req: Request, res: Response) {
     }
 
     const [existingRows] = await pool.execute(
-      `SELECT id, name, url, method, frequency, timeout,
-        headers, query_params, request_body, expected_status,
-        target_mode ,expires_at
+      `SELECT
+          id,
+          name,
+          url,
+          method,
+          frequency,
+          timeout,
+          headers,
+          query_params,
+          request_body,
+          expected_status,
+          target_mode,
+          expires_at,
+          auth_type,
+          auth_config
         FROM monitors
        WHERE id = ? AND user_id = ?
        LIMIT 1`,
@@ -484,6 +496,72 @@ export async function updateMonitorController(req: Request, res: Response) {
     }
 
     const input = req.body ?? {};
+
+    const authType =
+      input.authType !== undefined ? input.authType : existing.auth_type;
+
+    if (!["none", "api_key", "bearer", "basic"].includes(authType)) {
+      return res.status(400).json({
+        message: "Unsupported authentication type",
+      });
+    }
+
+    let encryptedAuthConfig: string | null = null;
+
+    if (authType === "none") {
+      encryptedAuthConfig = null;
+    } else if (input.authConfig !== undefined) {
+      const config = input.authConfig;
+
+      if (!config || typeof config !== "object" || Array.isArray(config)) {
+        return res.status(400).json({
+          message: "Valid authentication configuration is required",
+        });
+      }
+
+      if (
+        authType === "bearer" &&
+        (typeof config.token !== "string" || !config.token.trim())
+      ) {
+        return res.status(400).json({
+          message: "Bearer token is required",
+        });
+      }
+
+      if (
+        authType === "api_key" &&
+        (typeof config.apiKey !== "string" ||
+          !config.apiKey.trim() ||
+          typeof config.headerName !== "string" ||
+          !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(config.headerName))
+      ) {
+        return res.status(400).json({
+          message: "Valid API key and header name are required",
+        });
+      }
+
+      if (
+        authType === "basic" &&
+        (typeof config.username !== "string" ||
+          !config.username.trim() ||
+          typeof config.password !== "string" ||
+          !config.password)
+      ) {
+        return res.status(400).json({
+          message: "Username and password are required",
+        });
+      }
+
+      encryptedAuthConfig = encryptCredentials(config);
+    } else if (authType === existing.auth_type) {
+      // No new credentials provided: preserve the existing encrypted value.
+      encryptedAuthConfig = existing.auth_config as string | null;
+    } else {
+      return res.status(400).json({
+        message:
+          "New credentials are required when changing authentication type",
+      });
+    }
 
     const name = input.name ?? existing.name;
     const url = input.url ?? existing.url;

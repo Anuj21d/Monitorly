@@ -60,6 +60,7 @@ export async function createMonitor(monitor: Monitor): Promise<Monitor> {
     headers: monitor.headers ?? {},
     queryParams: monitor.queryParams ?? {},
     authType: monitor.authType ?? "none",
+    authConfig: monitor.authConfig ?? null,
     targetMode: monitor.targetMode ?? "public",
     expiresAt: monitor.expiresAt ?? null,
     body: monitor.body,

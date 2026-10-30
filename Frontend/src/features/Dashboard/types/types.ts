@@ -2,7 +2,7 @@ export type MonitorStatus = "healthy" | "degraded" | "down" | "paused";
 
 export type MonitorMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-export type MonitorAuthType = "none" | "bearer" | "apiKey" | "basic";
+export type MonitorAuthType = "none" | "bearer" | "api_key" | "basic";
 
 export type Monitor = {
   id: string;
